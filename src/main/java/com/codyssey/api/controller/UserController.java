@@ -2,6 +2,7 @@ package com.codyssey.api.controller;
 
 import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
+import com.codyssey.api.dto.UserUpdateDto;
 import com.codyssey.api.service.UserService;
 import com.codyssey.api.validation.ValidEmail;
 import com.codyssey.api.validation.ValidId;
@@ -96,7 +97,7 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Update user", description = "Updates an existing user")
+    @Operation(summary = "Update user", description = "Updates an existing user (username cannot be changed)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
@@ -107,11 +108,11 @@ public class UserController {
     public ResponseEntity<UserDto> updateUser(
             @Parameter(description = "User ID (15-character alphanumeric)", required = true)
             @PathVariable @ValidId String id,
-            @Parameter(description = "Updated user data", required = true)
-            @Valid @RequestBody UserDto userDto) {
+            @Parameter(description = "Updated user data (username cannot be changed, password is optional)", required = true)
+            @Valid @RequestBody UserUpdateDto userUpdateDto) {
 
         log.info("PUT /v1/users/{} - Updating user", id);
-        UserDto updatedUser = userService.updateUser(id, userDto);
+        UserDto updatedUser = userService.updateUser(id, userUpdateDto);
         return ResponseEntity.ok(updatedUser);
     }
 

@@ -2,6 +2,7 @@ package com.codyssey.api.service;
 
 import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
+import com.codyssey.api.dto.UserUpdateDto;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,11 +56,11 @@ public interface UserService {
     /**
      * Update user
      *
-     * @param id      user ID (15-character alphanumeric)
-     * @param userDto updated user data
+     * @param id           user ID (15-character alphanumeric)
+     * @param userUpdateDto updated user data (excluding username)
      * @return updated user DTO
      */
-    UserDto updateUser(String id, UserDto userDto);
+    UserDto updateUser(String id, UserUpdateDto userUpdateDto);
 
     /**
      * Delete user

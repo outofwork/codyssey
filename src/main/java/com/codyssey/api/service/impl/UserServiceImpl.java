@@ -2,6 +2,7 @@ package com.codyssey.api.service.impl;
 
 import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
+import com.codyssey.api.dto.UserUpdateDto;
 import com.codyssey.api.exception.DuplicateResourceException;
 import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.model.Role;
@@ -103,21 +104,40 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto updateUser(String id, UserDto userDto) {
+    public UserDto updateUser(String id, UserUpdateDto userUpdateDto) {
         log.info("Updating user with ID: {}", id);
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        // Check if email is being changed and if it already exists
-        if (!user.getEmail().equals(userDto.getEmail()) &&
-                userRepository.existsByEmail(userDto.getEmail())) {
-            throw new DuplicateResourceException("Email is already in use!");
+        // Update email if provided and different
+        if (userUpdateDto.getEmail() != null && !userUpdateDto.getEmail().trim().isEmpty()) {
+            if (!user.getEmail().equals(userUpdateDto.getEmail()) &&
+                    userRepository.existsByEmail(userUpdateDto.getEmail())) {
+                throw new DuplicateResourceException("Email is already in use!");
+            }
+            user.setEmail(userUpdateDto.getEmail());
         }
 
-        user.setEmail(userDto.getEmail());
-        user.setFirstName(userDto.getFirstName());
-        user.setLastName(userDto.getLastName());
+        // Update basic fields only if provided
+        if (userUpdateDto.getFirstName() != null) {
+            user.setFirstName(userUpdateDto.getFirstName());
+        }
+        if (userUpdateDto.getLastName() != null) {
+            user.setLastName(userUpdateDto.getLastName());
+        }
+
+        // Update password if provided
+        if (userUpdateDto.getPassword() != null && !userUpdateDto.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userUpdateDto.getPassword()));
+            log.info("Password updated for user with ID: {}", id);
+        }
+
+        // Update enabled status if provided
+        if (userUpdateDto.getEnabled() != null) {
+            user.setEnabled(userUpdateDto.getEnabled());
+            log.info("Enabled status updated to {} for user with ID: {}", userUpdateDto.getEnabled(), id);
+        }
 
         User updatedUser = userRepository.save(user);
         log.info("User updated successfully with ID: {}", updatedUser.getId());

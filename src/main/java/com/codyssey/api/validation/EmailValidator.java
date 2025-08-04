@@ -25,8 +25,11 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
 
     @Override
     public boolean isValid(String email, ConstraintValidatorContext context) {
-        if (email == null || email.trim().isEmpty()) {
-            return false;
+        if (email == null) {
+            return true; // null values are considered valid (optional field)
+        }
+        if (email.trim().isEmpty()) {
+            return false; // empty string is invalid
         }
 
         // Trim whitespace
