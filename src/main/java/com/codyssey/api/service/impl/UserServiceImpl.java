@@ -2,8 +2,8 @@ package com.codyssey.api.service.impl;
 
 import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
-import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.exception.DuplicateResourceException;
+import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.model.Role;
 import com.codyssey.api.model.User;
 import com.codyssey.api.repository.RoleRepository;
@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,7 +22,7 @@ import java.util.stream.Collectors;
 
 /**
  * Implementation of UserService
- * 
+ * <p>
  * Provides user management functionality including
  * registration, retrieval, updating, and deletion.
  */
@@ -106,13 +105,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto updateUser(Long id, UserDto userDto) {
         log.info("Updating user with ID: {}", id);
-        
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         // Check if email is being changed and if it already exists
-        if (!user.getEmail().equals(userDto.getEmail()) && 
-            userRepository.existsByEmail(userDto.getEmail())) {
+        if (!user.getEmail().equals(userDto.getEmail()) &&
+                userRepository.existsByEmail(userDto.getEmail())) {
             throw new DuplicateResourceException("Email is already in use!");
         }
 
@@ -129,7 +128,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUser(Long id) {
         log.info("Deleting user with ID: {}", id);
-        
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
@@ -152,20 +151,20 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto setUserEnabled(Long id, Boolean enabled) {
         log.info("Setting user enabled status for ID: {} to {}", id, enabled);
-        
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         user.setEnabled(enabled);
         User updatedUser = userRepository.save(user);
-        
+
         log.info("User enabled status updated for ID: {}", id);
         return convertToDto(updatedUser);
     }
 
     /**
      * Convert User entity to UserDto
-     * 
+     *
      * @param user the user entity
      * @return user DTO
      */
@@ -179,12 +178,12 @@ public class UserServiceImpl implements UserService {
         dto.setEnabled(user.getEnabled());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
-        
+
         Set<String> roleNames = user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toSet());
         dto.setRoles(roleNames);
-        
+
         return dto;
     }
 }

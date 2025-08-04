@@ -14,16 +14,16 @@ import java.util.Set;
 
 /**
  * User Entity
- * 
+ * <p>
  * Represents a user in the system with authentication
  * and profile information.
  */
 @Entity
-@Table(name = "users", 
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = "username"),
-           @UniqueConstraint(columnNames = "email")
-       })
+@Table(name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "username"),
+                @UniqueConstraint(columnNames = "email")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -80,8 +80,8 @@ public class User extends BaseEntity {
      */
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles",
-               joinColumns = @JoinColumn(name = "user_id"),
-               inverseJoinColumns = @JoinColumn(name = "role_id"))
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
     /**

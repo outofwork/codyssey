@@ -2,21 +2,20 @@ package com.codyssey.api.service;
 
 import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
-import com.codyssey.api.model.User;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Service interface for User operations
- * 
+ * <p>
  * Defines the contract for user-related business logic operations.
  */
 public interface UserService {
 
     /**
      * Register a new user
-     * 
+     *
      * @param userRegistrationDto user registration data
      * @return created user DTO
      */
@@ -24,14 +23,14 @@ public interface UserService {
 
     /**
      * Get all users
-     * 
+     *
      * @return list of all users
      */
     List<UserDto> getAllUsers();
 
     /**
      * Get user by ID
-     * 
+     *
      * @param id user ID
      * @return user DTO if found
      */
@@ -39,7 +38,7 @@ public interface UserService {
 
     /**
      * Get user by username
-     * 
+     *
      * @param username the username
      * @return user DTO if found
      */
@@ -47,7 +46,7 @@ public interface UserService {
 
     /**
      * Get user by email
-     * 
+     *
      * @param email the email
      * @return user DTO if found
      */
@@ -55,8 +54,8 @@ public interface UserService {
 
     /**
      * Update user
-     * 
-     * @param id user ID
+     *
+     * @param id      user ID
      * @param userDto updated user data
      * @return updated user DTO
      */
@@ -64,14 +63,14 @@ public interface UserService {
 
     /**
      * Delete user
-     * 
+     *
      * @param id user ID
      */
     void deleteUser(Long id);
 
     /**
      * Check if username exists
-     * 
+     *
      * @param username the username
      * @return true if exists, false otherwise
      */
@@ -79,7 +78,7 @@ public interface UserService {
 
     /**
      * Check if email exists
-     * 
+     *
      * @param email the email
      * @return true if exists, false otherwise
      */
@@ -87,8 +86,8 @@ public interface UserService {
 
     /**
      * Enable/disable user account
-     * 
-     * @param id user ID
+     *
+     * @param id      user ID
      * @param enabled new enabled status
      * @return updated user DTO
      */

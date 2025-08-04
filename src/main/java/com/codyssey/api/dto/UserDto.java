@@ -12,7 +12,7 @@ import java.util.Set;
 
 /**
  * Data Transfer Object for User entity
- * 
+ * <p>
  * Used for transferring user data between layers
  * without exposing sensitive information.
  */

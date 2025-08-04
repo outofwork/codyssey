@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Data Transfer Object for User registration
- * 
+ * <p>
  * Used for capturing user registration information
  * including password.
  */

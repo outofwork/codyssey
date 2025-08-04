@@ -8,7 +8,7 @@ import java.util.Optional;
 
 /**
  * Repository interface for Role entity
- * 
+ * <p>
  * Provides data access methods for Role entities.
  */
 @Repository
@@ -16,7 +16,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     /**
      * Find role by name
-     * 
+     *
      * @param name the role name to search for
      * @return Optional containing the role if found
      */
@@ -24,7 +24,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     /**
      * Check if role name exists
-     * 
+     *
      * @param name the role name to check
      * @return true if role name exists, false otherwise
      */

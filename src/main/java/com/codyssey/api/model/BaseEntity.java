@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 /**
  * Base Entity class for all JPA entities
- * 
+ * <p>
  * This abstract class provides common fields and functionality
  * that all entities in the application should have, such as
  * ID, creation timestamp, and last modified timestamp.

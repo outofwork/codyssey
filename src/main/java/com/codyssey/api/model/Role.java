@@ -1,6 +1,8 @@
 package com.codyssey.api.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -10,7 +12,7 @@ import lombok.Setter;
 
 /**
  * Role Entity
- * 
+ * <p>
  * Represents user roles for authorization purposes.
  */
 @Entity
