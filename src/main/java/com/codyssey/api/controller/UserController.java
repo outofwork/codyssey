@@ -3,16 +3,20 @@ package com.codyssey.api.controller;
 import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
 import com.codyssey.api.service.UserService;
+import com.codyssey.api.validation.ValidEmail;
+import com.codyssey.api.validation.ValidUsername;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +31,7 @@ import java.util.List;
 @RequestMapping("/v1/users")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @Tag(name = "User Management", description = "APIs for managing users")
 public class UserController {
 
@@ -67,7 +72,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(
             @Parameter(description = "User ID", required = true)
-            @PathVariable Long id) {
+            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id) {
 
         log.info("GET /v1/users/{} - Retrieving user by ID", id);
         return userService.getUserById(id)
@@ -83,7 +88,7 @@ public class UserController {
     @GetMapping("/username/{username}")
     public ResponseEntity<UserDto> getUserByUsername(
             @Parameter(description = "Username", required = true)
-            @PathVariable String username) {
+            @PathVariable @ValidUsername String username) {
 
         log.info("GET /v1/users/username/{} - Retrieving user by username", username);
         return userService.getUserByUsername(username)
@@ -101,7 +106,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(
             @Parameter(description = "User ID", required = true)
-            @PathVariable Long id,
+            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id,
             @Parameter(description = "Updated user data", required = true)
             @Valid @RequestBody UserDto userDto) {
 
@@ -118,7 +123,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(
             @Parameter(description = "User ID", required = true)
-            @PathVariable Long id) {
+            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id) {
 
         log.info("DELETE /v1/users/{} - Deleting user", id);
         userService.deleteUser(id);
@@ -133,7 +138,7 @@ public class UserController {
     @PatchMapping("/{id}/enabled")
     public ResponseEntity<UserDto> setUserEnabled(
             @Parameter(description = "User ID", required = true)
-            @PathVariable Long id,
+            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id,
             @Parameter(description = "Enabled status", required = true)
             @RequestParam Boolean enabled) {
 
@@ -149,7 +154,7 @@ public class UserController {
     @GetMapping("/check-username/{username}")
     public ResponseEntity<Boolean> checkUsernameAvailability(
             @Parameter(description = "Username to check", required = true)
-            @PathVariable String username) {
+            @PathVariable @ValidUsername String username) {
 
         log.info("GET /v1/users/check-username/{} - Checking username availability", username);
         boolean exists = userService.existsByUsername(username);
@@ -163,7 +168,7 @@ public class UserController {
     @GetMapping("/check-email/{email}")
     public ResponseEntity<Boolean> checkEmailAvailability(
             @Parameter(description = "Email to check", required = true)
-            @PathVariable String email) {
+            @PathVariable @ValidEmail String email) {
 
         log.info("GET /v1/users/check-email/{} - Checking email availability", email);
         boolean exists = userService.existsByEmail(email);

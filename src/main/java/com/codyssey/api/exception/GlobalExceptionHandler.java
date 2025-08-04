@@ -1,5 +1,7 @@
 package com.codyssey.api.exception;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -37,13 +39,42 @@ public class GlobalExceptionHandler {
 
         log.error("Resource not found: {}", ex.getMessage());
 
+        String userFriendlyMessage = getUserFriendlyNotFoundMessage(ex.getMessage());
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.NOT_FOUND, ex.getMessage());
-        problemDetail.setTitle("Resource Not Found");
+                HttpStatus.NOT_FOUND, userFriendlyMessage);
+        problemDetail.setTitle("Not Found");
         problemDetail.setProperty("timestamp", LocalDateTime.now());
         problemDetail.setProperty("path", request.getDescription(false));
+        problemDetail.setProperty("suggestion", getSuggestionForNotFound(ex.getMessage()));
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problemDetail);
+    }
+
+    /**
+     * Convert technical not found message to user-friendly message
+     */
+    private String getUserFriendlyNotFoundMessage(String originalMessage) {
+        if (originalMessage.toLowerCase().contains("user") && originalMessage.toLowerCase().contains("id")) {
+            return "User not found. Please check the user ID and try again.";
+        } else if (originalMessage.toLowerCase().contains("user") && originalMessage.toLowerCase().contains("username")) {
+            return "User not found. Please check the username and try again.";
+        } else if (originalMessage.toLowerCase().contains("role")) {
+            return "Required user role is not configured in the system.";
+        }
+        return originalMessage;
+    }
+
+    /**
+     * Provide helpful suggestions for not found resources
+     */
+    private String getSuggestionForNotFound(String originalMessage) {
+        if (originalMessage.toLowerCase().contains("user")) {
+            return "Verify the user exists or try searching for users first.";
+        } else if (originalMessage.toLowerCase().contains("role")) {
+            return "Please contact the system administrator to configure the required roles.";
+        }
+        return "Please verify the requested resource exists.";
     }
 
     /**
@@ -59,17 +90,44 @@ public class GlobalExceptionHandler {
 
         log.error("Duplicate resource: {}", ex.getMessage());
 
+        String userFriendlyMessage = getUserFriendlyDuplicateMessage(ex.getMessage());
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT, ex.getMessage());
-        problemDetail.setTitle("Duplicate Resource");
+                HttpStatus.CONFLICT, userFriendlyMessage);
+        problemDetail.setTitle("Resource Already Exists");
         problemDetail.setProperty("timestamp", LocalDateTime.now());
         problemDetail.setProperty("path", request.getDescription(false));
+        problemDetail.setProperty("suggestion", getSuggestionForDuplicate(ex.getMessage()));
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problemDetail);
     }
 
     /**
-     * Handle validation errors
+     * Convert technical duplicate message to user-friendly message
+     */
+    private String getUserFriendlyDuplicateMessage(String originalMessage) {
+        if (originalMessage.toLowerCase().contains("username")) {
+            return "This username is already taken. Please choose a different username.";
+        } else if (originalMessage.toLowerCase().contains("email")) {
+            return "This email address is already registered. Please use a different email or try logging in.";
+        }
+        return originalMessage;
+    }
+
+    /**
+     * Provide helpful suggestions for duplicate resources
+     */
+    private String getSuggestionForDuplicate(String originalMessage) {
+        if (originalMessage.toLowerCase().contains("username")) {
+            return "Try adding numbers or underscores to make your username unique.";
+        } else if (originalMessage.toLowerCase().contains("email")) {
+            return "If you already have an account, try logging in instead of registering.";
+        }
+        return "Please try with different values.";
+    }
+
+    /**
+     * Handle validation errors for request body
      *
      * @param ex      the exception
      * @param request the web request
@@ -79,7 +137,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleValidationExceptions(
             MethodArgumentNotValidException ex, WebRequest request) {
 
-        log.error("Validation error: {}", ex.getMessage());
+        log.error("Request body validation error: {}", ex.getMessage());
 
         Map<String, String> validationErrors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -88,12 +146,54 @@ public class GlobalExceptionHandler {
             validationErrors.put(fieldName, errorMessage);
         });
 
+        String mainMessage = validationErrors.size() == 1 
+            ? "Please fix the following issue with your request:"
+            : String.format("Please fix the following %d issues with your request:", validationErrors.size());
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST, "Validation failed");
+                HttpStatus.BAD_REQUEST, mainMessage);
         problemDetail.setTitle("Validation Error");
         problemDetail.setProperty("timestamp", LocalDateTime.now());
         problemDetail.setProperty("path", request.getDescription(false));
-        problemDetail.setProperty("validationErrors", validationErrors);
+        problemDetail.setProperty("errors", validationErrors);
+        problemDetail.setProperty("errorCount", validationErrors.size());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
+    /**
+     * Handle validation errors for path variables and request parameters
+     *
+     * @param ex      the exception
+     * @param request the web request
+     * @return ResponseEntity with validation error details
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolationException(
+            ConstraintViolationException ex, WebRequest request) {
+
+        log.error("Path variable/parameter validation error: {}", ex.getMessage());
+
+        Map<String, String> validationErrors = new HashMap<>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            String propertyPath = violation.getPropertyPath().toString();
+            String message = violation.getMessage();
+            // Extract just the parameter name (last part after the dot)
+            String parameterName = propertyPath.substring(propertyPath.lastIndexOf('.') + 1);
+            validationErrors.put(parameterName, message);
+        }
+
+        String mainMessage = validationErrors.size() == 1 
+            ? "The provided value is invalid:"
+            : String.format("The following %d values are invalid:", validationErrors.size());
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, mainMessage);
+        problemDetail.setTitle("Invalid Input");
+        problemDetail.setProperty("timestamp", LocalDateTime.now());
+        problemDetail.setProperty("path", request.getDescription(false));
+        problemDetail.setProperty("errors", validationErrors);
+        problemDetail.setProperty("errorCount", validationErrors.size());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
     }
@@ -111,13 +211,27 @@ public class GlobalExceptionHandler {
 
         log.error("Illegal argument: {}", ex.getMessage());
 
+        String userFriendlyMessage = getUserFriendlyArgumentMessage(ex.getMessage());
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST, ex.getMessage());
-        problemDetail.setTitle("Invalid Argument");
+                HttpStatus.BAD_REQUEST, userFriendlyMessage);
+        problemDetail.setTitle("Invalid Request");
         problemDetail.setProperty("timestamp", LocalDateTime.now());
         problemDetail.setProperty("path", request.getDescription(false));
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
+    /**
+     * Convert technical argument message to user-friendly message
+     */
+    private String getUserFriendlyArgumentMessage(String originalMessage) {
+        if (originalMessage.contains("parameter name information not available")) {
+            return "There was an issue processing your request. Please ensure all required information is provided.";
+        } else if (originalMessage.toLowerCase().contains("null") || originalMessage.toLowerCase().contains("empty")) {
+            return "Required information is missing. Please provide all necessary details.";
+        }
+        return "Invalid request. Please check your input and try again.";
     }
 
     /**
