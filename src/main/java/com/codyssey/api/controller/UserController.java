@@ -4,6 +4,7 @@ import com.codyssey.api.dto.UserDto;
 import com.codyssey.api.dto.UserRegistrationDto;
 import com.codyssey.api.service.UserService;
 import com.codyssey.api.validation.ValidEmail;
+import com.codyssey.api.validation.ValidId;
 import com.codyssey.api.validation.ValidUsername;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -71,8 +71,8 @@ public class UserController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id) {
+            @Parameter(description = "User ID (15-character alphanumeric)", required = true)
+            @PathVariable @ValidId String id) {
 
         log.info("GET /v1/users/{} - Retrieving user by ID", id);
         return userService.getUserById(id)
@@ -105,8 +105,8 @@ public class UserController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id,
+            @Parameter(description = "User ID (15-character alphanumeric)", required = true)
+            @PathVariable @ValidId String id,
             @Parameter(description = "Updated user data", required = true)
             @Valid @RequestBody UserDto userDto) {
 
@@ -122,8 +122,8 @@ public class UserController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id) {
+            @Parameter(description = "User ID (15-character alphanumeric)", required = true)
+            @PathVariable @ValidId String id) {
 
         log.info("DELETE /v1/users/{} - Deleting user", id);
         userService.deleteUser(id);
@@ -137,8 +137,8 @@ public class UserController {
     })
     @PatchMapping("/{id}/enabled")
     public ResponseEntity<UserDto> setUserEnabled(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable @Min(value = 1, message = "User ID must be a positive number") Long id,
+            @Parameter(description = "User ID (15-character alphanumeric)", required = true)
+            @PathVariable @ValidId String id,
             @Parameter(description = "Enabled status", required = true)
             @RequestParam Boolean enabled) {
 

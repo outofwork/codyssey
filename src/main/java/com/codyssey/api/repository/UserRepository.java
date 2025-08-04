@@ -16,7 +16,7 @@ import java.util.Optional;
  * additional custom query methods.
  */
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, String> {
 
     /**
      * Find user by username

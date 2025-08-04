@@ -3,6 +3,7 @@ package com.codyssey.api.exception;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -220,6 +222,97 @@ public class GlobalExceptionHandler {
         problemDetail.setProperty("path", request.getDescription(false));
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
+    /**
+     * Handle MethodArgumentTypeMismatchException (e.g., invalid ID format)
+     *
+     * @param ex      the exception
+     * @param request the web request
+     * @return ResponseEntity with error details
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException ex, WebRequest request) {
+
+        log.error("Type mismatch error: {}", ex.getMessage());
+
+        String parameterName = ex.getName();
+        String invalidValue = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String expectedType = getSimpleTypeName(ex.getRequiredType());
+        
+        String userFriendlyMessage = String.format(
+            "Invalid %s format. Expected a %s but received '%s'. Please provide a valid %s.",
+            parameterName, expectedType, invalidValue, expectedType
+        );
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, userFriendlyMessage);
+        problemDetail.setTitle("Invalid Parameter Format");
+        problemDetail.setProperty("timestamp", LocalDateTime.now());
+        problemDetail.setProperty("path", request.getDescription(false));
+        problemDetail.setProperty("parameter", parameterName);
+        problemDetail.setProperty("invalidValue", invalidValue);
+        problemDetail.setProperty("expectedType", expectedType);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
+    /**
+     * Handle general TypeMismatchException
+     *
+     * @param ex      the exception
+     * @param request the web request
+     * @return ResponseEntity with error details
+     */
+    @ExceptionHandler(TypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleTypeMismatchException(
+            TypeMismatchException ex, WebRequest request) {
+
+        log.error("Type mismatch error: {}", ex.getMessage());
+
+        String invalidValue = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String expectedType = getSimpleTypeName(ex.getRequiredType());
+        
+        String userFriendlyMessage = String.format(
+            "Invalid data format. Expected %s but received '%s'. Please check your input.",
+            expectedType, invalidValue
+        );
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, userFriendlyMessage);
+        problemDetail.setTitle("Invalid Data Format");
+        problemDetail.setProperty("timestamp", LocalDateTime.now());
+        problemDetail.setProperty("path", request.getDescription(false));
+        problemDetail.setProperty("invalidValue", invalidValue);
+        problemDetail.setProperty("expectedType", expectedType);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
+    /**
+     * Get simple type name for user-friendly messages
+     */
+    private String getSimpleTypeName(Class<?> type) {
+        if (type == null) return "valid value";
+        
+        String simpleName = type.getSimpleName().toLowerCase();
+        switch (simpleName) {
+            case "long":
+                return "number";
+            case "integer":
+            case "int":
+                return "whole number";
+            case "double":
+            case "float":
+                return "decimal number";
+            case "boolean":
+                return "true/false value";
+            case "string":
+                return "text";
+            default:
+                return simpleName;
+        }
     }
 
     /**

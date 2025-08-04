@@ -1,8 +1,10 @@
 package com.codyssey.api.model;
 
+import com.codyssey.api.util.AlphanumericIdGenerator;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -23,11 +25,13 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     /**
-     * Primary key for the entity
+     * Primary key for the entity - 15-character alphanumeric ID
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(generator = "alphanumeric-id")
+    @GenericGenerator(name = "alphanumeric-id", strategy = "com.codyssey.api.util.AlphanumericIdGenerator")
+    @Column(name = "id", length = 15)
+    private String id;
 
     /**
      * Timestamp when the entity was created

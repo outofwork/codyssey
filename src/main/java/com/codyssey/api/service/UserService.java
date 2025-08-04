@@ -31,10 +31,10 @@ public interface UserService {
     /**
      * Get user by ID
      *
-     * @param id user ID
+     * @param id user ID (15-character alphanumeric)
      * @return user DTO if found
      */
-    Optional<UserDto> getUserById(Long id);
+    Optional<UserDto> getUserById(String id);
 
     /**
      * Get user by username
@@ -55,18 +55,18 @@ public interface UserService {
     /**
      * Update user
      *
-     * @param id      user ID
+     * @param id      user ID (15-character alphanumeric)
      * @param userDto updated user data
      * @return updated user DTO
      */
-    UserDto updateUser(Long id, UserDto userDto);
+    UserDto updateUser(String id, UserDto userDto);
 
     /**
      * Delete user
      *
-     * @param id user ID
+     * @param id user ID (15-character alphanumeric)
      */
-    void deleteUser(Long id);
+    void deleteUser(String id);
 
     /**
      * Check if username exists
@@ -87,9 +87,9 @@ public interface UserService {
     /**
      * Enable/disable user account
      *
-     * @param id      user ID
+     * @param id      user ID (15-character alphanumeric)
      * @param enabled new enabled status
      * @return updated user DTO
      */
-    UserDto setUserEnabled(Long id, Boolean enabled);
+    UserDto setUserEnabled(String id, Boolean enabled);
 }

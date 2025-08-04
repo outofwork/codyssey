@@ -80,8 +80,8 @@ public class User extends BaseEntity {
      */
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
+            joinColumns = @JoinColumn(name = "user_id", columnDefinition = "VARCHAR(15)"),
+            inverseJoinColumns = @JoinColumn(name = "role_id", columnDefinition = "VARCHAR(15)"))
     private Set<Role> roles = new HashSet<>();
 
     /**

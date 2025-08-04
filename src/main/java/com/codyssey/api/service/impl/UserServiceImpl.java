@@ -80,7 +80,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<UserDto> getUserById(Long id) {
+    public Optional<UserDto> getUserById(String id) {
         log.info("Retrieving user by ID: {}", id);
         return userRepository.findById(id)
                 .map(this::convertToDto);
@@ -103,7 +103,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto updateUser(Long id, UserDto userDto) {
+    public UserDto updateUser(String id, UserDto userDto) {
         log.info("Updating user with ID: {}", id);
 
         User user = userRepository.findById(id)
@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(Long id) {
+    public void deleteUser(String id) {
         log.info("Deleting user with ID: {}", id);
 
         User user = userRepository.findById(id)
@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto setUserEnabled(Long id, Boolean enabled) {
+    public UserDto setUserEnabled(String id, Boolean enabled) {
         log.info("Setting user enabled status for ID: {} to {}", id, enabled);
 
         User user = userRepository.findById(id)

@@ -12,7 +12,7 @@ import java.util.Optional;
  * Provides data access methods for Role entities.
  */
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
+public interface RoleRepository extends JpaRepository<Role, String> {
 
     /**
      * Find role by name
