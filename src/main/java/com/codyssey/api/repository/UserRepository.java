@@ -74,4 +74,13 @@ public interface UserRepository extends JpaRepository<User, String> {
      */
     @Query("SELECT u FROM User u WHERE u.firstName LIKE %:searchTerm% OR u.lastName LIKE %:searchTerm%")
     List<User> findByNameContaining(@Param("searchTerm") String searchTerm);
+
+    /**
+     * Find user by ID that is not deleted
+     *
+     * @param id the user ID
+     * @return Optional containing the user if found and not deleted
+     */
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.deleted = false")
+    Optional<User> findByIdAndNotDeleted(@Param("id") String id);
 }
