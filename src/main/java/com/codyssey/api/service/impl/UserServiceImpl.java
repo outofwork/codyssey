@@ -1,8 +1,8 @@
 package com.codyssey.api.service.impl;
 
-import com.codyssey.api.dto.UserDto;
-import com.codyssey.api.dto.UserRegistrationDto;
-import com.codyssey.api.dto.UserUpdateDto;
+import com.codyssey.api.dto.user.UserDto;
+import com.codyssey.api.dto.user.UserRegistrationDto;
+import com.codyssey.api.dto.user.UserUpdateDto;
 import com.codyssey.api.exception.DuplicateResourceException;
 import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.model.Role;

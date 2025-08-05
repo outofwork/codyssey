@@ -1,5 +1,6 @@
 package com.codyssey.api.model;
 
+import com.codyssey.api.util.UserIdGenerator;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -8,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -29,6 +31,15 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User extends BaseEntity {
+
+    /**
+     * Primary key for the entity - User ID (ACC-xxxxxx)
+     */
+    @Id
+    @GeneratedValue(generator = "user-id")
+    @GenericGenerator(name = "user-id", strategy = "com.codyssey.api.util.UserIdGenerator")
+    @Column(name = "id", length = 10)
+    private String id;
 
     /**
      * Username for authentication

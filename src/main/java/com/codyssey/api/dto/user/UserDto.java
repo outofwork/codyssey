@@ -1,4 +1,4 @@
-package com.codyssey.api.dto;
+package com.codyssey.api.dto.user;
 
 import com.codyssey.api.validation.ValidEmail;
 import com.codyssey.api.validation.ValidUsername;
@@ -9,16 +9,21 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.Set;
+
 /**
- * Data Transfer Object for User registration
+ * Data Transfer Object for User entity
  * <p>
- * Used for capturing user registration information
- * including password with enhanced global standard validation.
+ * Used for transferring user data between layers
+ * without exposing sensitive information with enhanced validation.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRegistrationDto {
+public class UserDto {
+
+    private String id;
 
     @NotBlank(message = "Username is required")
     @ValidUsername
@@ -27,14 +32,6 @@ public class UserRegistrationDto {
     @NotBlank(message = "Email is required")
     @ValidEmail
     private String email;
-
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
-    @Pattern(
-        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-        message = "Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character (@$!%*?&)"
-    )
-    private String password;
 
     @Size(max = 50, message = "First name must not exceed 50 characters")
     @Pattern(
@@ -49,4 +46,12 @@ public class UserRegistrationDto {
         message = "Last name can only contain letters, spaces, apostrophes, and hyphens"
     )
     private String lastName;
+
+    private Boolean enabled;
+
+    private Set<String> roles;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }

@@ -1,7 +1,6 @@
-package com.codyssey.api.dto;
+package com.codyssey.api.dto.user;
 
 import com.codyssey.api.validation.ValidEmail;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;

@@ -1,8 +1,8 @@
 package com.codyssey.api.controller;
 
-import com.codyssey.api.dto.UserDto;
-import com.codyssey.api.dto.UserRegistrationDto;
-import com.codyssey.api.dto.UserUpdateDto;
+import com.codyssey.api.dto.user.UserDto;
+import com.codyssey.api.dto.user.UserRegistrationDto;
+import com.codyssey.api.dto.user.UserUpdateDto;
 import com.codyssey.api.service.UserService;
 import com.codyssey.api.validation.ValidEmail;
 import com.codyssey.api.validation.ValidId;

@@ -25,14 +25,18 @@ public class DataInitializer implements CommandLineRunner {
     private void createDefaultRoles() {
         // Create ROLE_USER if it doesn't exist
         if (!roleRepository.existsByName("ROLE_USER")) {
-            Role userRole = new Role("ROLE_USER", "Default user role");
+            Role userRole = new Role();
+            userRole.setName("ROLE_USER");
+            userRole.setDescription("Default user role");
             roleRepository.save(userRole);
             log.info("Created default role: ROLE_USER");
         }
 
         // Create ROLE_ADMIN if it doesn't exist
         if (!roleRepository.existsByName("ROLE_ADMIN")) {
-            Role adminRole = new Role("ROLE_ADMIN", "Administrator role");
+            Role adminRole = new Role();
+            adminRole.setName("ROLE_ADMIN");
+            adminRole.setDescription("Administrator role");
             roleRepository.save(adminRole);
             log.info("Created default role: ROLE_ADMIN");
         }
