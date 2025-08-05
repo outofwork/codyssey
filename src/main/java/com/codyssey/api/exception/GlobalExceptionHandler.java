@@ -148,9 +148,9 @@ public class GlobalExceptionHandler {
             validationErrors.put(fieldName, errorMessage);
         });
 
-        String mainMessage = validationErrors.size() == 1 
-            ? "Please fix the following issue with your request:"
-            : String.format("Please fix the following %d issues with your request:", validationErrors.size());
+        String mainMessage = validationErrors.size() == 1
+                ? "Please fix the following issue with your request:"
+                : String.format("Please fix the following %d issues with your request:", validationErrors.size());
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, mainMessage);
@@ -185,9 +185,9 @@ public class GlobalExceptionHandler {
             validationErrors.put(parameterName, message);
         }
 
-        String mainMessage = validationErrors.size() == 1 
-            ? "The provided value is invalid:"
-            : String.format("The following %d values are invalid:", validationErrors.size());
+        String mainMessage = validationErrors.size() == 1
+                ? "The provided value is invalid:"
+                : String.format("The following %d values are invalid:", validationErrors.size());
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, mainMessage);
@@ -240,10 +240,10 @@ public class GlobalExceptionHandler {
         String parameterName = ex.getName();
         String invalidValue = ex.getValue() != null ? ex.getValue().toString() : "null";
         String expectedType = getSimpleTypeName(ex.getRequiredType());
-        
+
         String userFriendlyMessage = String.format(
-            "Invalid %s format. Expected a %s but received '%s'. Please provide a valid %s.",
-            parameterName, expectedType, invalidValue, expectedType
+                "Invalid %s format. Expected a %s but received '%s'. Please provide a valid %s.",
+                parameterName, expectedType, invalidValue, expectedType
         );
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -273,10 +273,10 @@ public class GlobalExceptionHandler {
 
         String invalidValue = ex.getValue() != null ? ex.getValue().toString() : "null";
         String expectedType = getSimpleTypeName(ex.getRequiredType());
-        
+
         String userFriendlyMessage = String.format(
-            "Invalid data format. Expected %s but received '%s'. Please check your input.",
-            expectedType, invalidValue
+                "Invalid data format. Expected %s but received '%s'. Please check your input.",
+                expectedType, invalidValue
         );
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -295,7 +295,7 @@ public class GlobalExceptionHandler {
      */
     private String getSimpleTypeName(Class<?> type) {
         if (type == null) return "valid value";
-        
+
         String simpleName = type.getSimpleName().toLowerCase();
         switch (simpleName) {
             case "long":

@@ -35,15 +35,15 @@ public class UserDto {
 
     @Size(max = 50, message = "First name must not exceed 50 characters")
     @Pattern(
-        regexp = "^[a-zA-Z\\s'-]+$|^$",
-        message = "First name can only contain letters, spaces, apostrophes, and hyphens"
+            regexp = "^[a-zA-Z\\s'-]+$|^$",
+            message = "First name can only contain letters, spaces, apostrophes, and hyphens"
     )
     private String firstName;
 
     @Size(max = 50, message = "Last name must not exceed 50 characters")
     @Pattern(
-        regexp = "^[a-zA-Z\\s'-]+$|^$",
-        message = "Last name can only contain letters, spaces, apostrophes, and hyphens"
+            regexp = "^[a-zA-Z\\s'-]+$|^$",
+            message = "Last name can only contain letters, spaces, apostrophes, and hyphens"
     )
     private String lastName;
 

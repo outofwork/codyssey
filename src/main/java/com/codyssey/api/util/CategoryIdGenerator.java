@@ -20,6 +20,19 @@ public class CategoryIdGenerator implements IdentifierGenerator {
     private static final String PREFIX = "CAT-";
     private static final int STARTING_NUMBER = 100001;
 
+    /**
+     * Validates if a string is a valid Category ID
+     *
+     * @param id The ID to validate
+     * @return true if valid, false otherwise
+     */
+    public static boolean isValidCategoryId(String id) {
+        if (id == null) {
+            return false;
+        }
+        return id.matches("^CAT-\\d{6}$");
+    }
+
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) {
         Connection connection = null;
@@ -34,7 +47,7 @@ public class CategoryIdGenerator implements IdentifierGenerator {
             String sql = "SELECT MAX(CAST(SUBSTRING(id, 5) AS INTEGER)) FROM label_categories WHERE id LIKE 'CAT-%'";
             PreparedStatement statement = connection.prepareStatement(sql);
             ResultSet resultSet = statement.executeQuery();
-            
+
             int nextNumber = STARTING_NUMBER;
             if (resultSet.next()) {
                 Integer maxNumber = (Integer) resultSet.getObject(1);
@@ -42,12 +55,12 @@ public class CategoryIdGenerator implements IdentifierGenerator {
                     nextNumber = maxNumber + 1;
                 }
             }
-            
+
             resultSet.close();
             statement.close();
-            
+
             return PREFIX + String.format("%06d", nextNumber);
-            
+
         } catch (SQLException e) {
             throw new RuntimeException("Failed to generate Category ID", e);
         } finally {
@@ -58,18 +71,5 @@ public class CategoryIdGenerator implements IdentifierGenerator {
                 System.err.println("Failed to release connection: " + e.getMessage());
             }
         }
-    }
-
-    /**
-     * Validates if a string is a valid Category ID
-     * 
-     * @param id The ID to validate
-     * @return true if valid, false otherwise
-     */
-    public static boolean isValidCategoryId(String id) {
-        if (id == null) {
-            return false;
-        }
-        return id.matches("^CAT-\\d{6}$");
     }
 }

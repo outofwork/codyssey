@@ -56,7 +56,7 @@ public interface UserService {
     /**
      * Update user
      *
-     * @param id           user ID (15-character alphanumeric)
+     * @param id            user ID (15-character alphanumeric)
      * @param userUpdateDto updated user data (excluding username)
      * @return updated user DTO
      */

@@ -100,32 +100,32 @@ public interface LabelRepository extends JpaRepository<Label, String> {
     /**
      * Check if a label name exists within a category (for uniqueness validation)
      *
-     * @param name the name to check
+     * @param name       the name to check
      * @param categoryId the category ID
-     * @param parentId the parent ID (can be null for root labels)
+     * @param parentId   the parent ID (can be null for root labels)
      * @return true if name exists in the category/parent combination
      */
     @Query("SELECT COUNT(l) > 0 FROM Label l WHERE LOWER(l.name) = LOWER(:name) AND l.category.id = :categoryId AND " +
-           "(:parentId IS NULL AND l.parent IS NULL OR l.parent.id = :parentId) AND l.deleted = false")
-    boolean existsByNameAndCategoryAndParent(@Param("name") String name, 
-                                           @Param("categoryId") String categoryId, 
-                                           @Param("parentId") String parentId);
+            "(:parentId IS NULL AND l.parent IS NULL OR l.parent.id = :parentId) AND l.deleted = false")
+    boolean existsByNameAndCategoryAndParent(@Param("name") String name,
+                                             @Param("categoryId") String categoryId,
+                                             @Param("parentId") String parentId);
 
     /**
      * Check if a label name exists within a category (excluding a specific label ID for updates)
      *
-     * @param name the name to check
+     * @param name       the name to check
      * @param categoryId the category ID
-     * @param parentId the parent ID (can be null for root labels)
-     * @param excludeId the label ID to exclude from the check
+     * @param parentId   the parent ID (can be null for root labels)
+     * @param excludeId  the label ID to exclude from the check
      * @return true if name exists in the category/parent combination (excluding the specified ID)
      */
     @Query("SELECT COUNT(l) > 0 FROM Label l WHERE LOWER(l.name) = LOWER(:name) AND l.category.id = :categoryId AND " +
-           "(:parentId IS NULL AND l.parent IS NULL OR l.parent.id = :parentId) AND l.deleted = false AND l.id != :excludeId")
-    boolean existsByNameAndCategoryAndParentExcludingId(@Param("name") String name, 
-                                                       @Param("categoryId") String categoryId, 
-                                                       @Param("parentId") String parentId,
-                                                       @Param("excludeId") String excludeId);
+            "(:parentId IS NULL AND l.parent IS NULL OR l.parent.id = :parentId) AND l.deleted = false AND l.id != :excludeId")
+    boolean existsByNameAndCategoryAndParentExcludingId(@Param("name") String name,
+                                                        @Param("categoryId") String categoryId,
+                                                        @Param("parentId") String parentId,
+                                                        @Param("excludeId") String excludeId);
 
     /**
      * Get all distinct categories that have labels

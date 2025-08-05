@@ -12,7 +12,7 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
 
     // RFC 5322 compliant email pattern (simplified but robust)
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+            "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
     );
 
     private static final int MAX_EMAIL_LENGTH = 254; // RFC 5321
@@ -39,7 +39,7 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
         if (email.length() > MAX_EMAIL_LENGTH) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
-                String.format("Email must not exceed %d characters", MAX_EMAIL_LENGTH)
+                    String.format("Email must not exceed %d characters", MAX_EMAIL_LENGTH)
             ).addConstraintViolation();
             return false;
         }
@@ -48,7 +48,7 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
         if (!EMAIL_PATTERN.matcher(email).matches()) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
-                "Email format is invalid"
+                    "Email format is invalid"
             ).addConstraintViolation();
             return false;
         }
@@ -66,7 +66,7 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
         if (localPart.length() > MAX_LOCAL_PART_LENGTH) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
-                String.format("Email local part must not exceed %d characters", MAX_LOCAL_PART_LENGTH)
+                    String.format("Email local part must not exceed %d characters", MAX_LOCAL_PART_LENGTH)
             ).addConstraintViolation();
             return false;
         }
@@ -75,7 +75,7 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
         if (!domainPart.contains(".") || domainPart.startsWith(".") || domainPart.endsWith(".")) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
-                "Email domain format is invalid"
+                    "Email domain format is invalid"
             ).addConstraintViolation();
             return false;
         }
@@ -84,7 +84,7 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
         if (domainPart.contains("..")) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
-                "Email domain cannot contain consecutive dots"
+                    "Email domain cannot contain consecutive dots"
             ).addConstraintViolation();
             return false;
         }

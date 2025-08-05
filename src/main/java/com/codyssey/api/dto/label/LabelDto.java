@@ -1,6 +1,5 @@
 package com.codyssey.api.dto.label;
 
-import com.codyssey.api.dto.labelcategory.LabelCategoryDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

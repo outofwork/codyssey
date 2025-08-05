@@ -24,8 +24,8 @@ public class LabelCategoryCreateDto {
     @NotBlank(message = "Code is required")
     @Size(max = 50, message = "Code must not exceed 50 characters")
     @Pattern(
-        regexp = "^[A-Z0-9_]+$",
-        message = "Code must contain only uppercase letters, numbers, and underscores"
+            regexp = "^[A-Z0-9_]+$",
+            message = "Code must contain only uppercase letters, numbers, and underscores"
     )
     private String code;
 

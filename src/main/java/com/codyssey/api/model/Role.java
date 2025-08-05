@@ -1,6 +1,5 @@
 package com.codyssey.api.model;
 
-import com.codyssey.api.util.RoleIdGenerator;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

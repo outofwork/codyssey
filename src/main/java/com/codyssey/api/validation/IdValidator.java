@@ -1,9 +1,9 @@
 package com.codyssey.api.validation;
 
-import com.codyssey.api.util.UserIdGenerator;
 import com.codyssey.api.util.CategoryIdGenerator;
-import com.codyssey.api.util.RoleIdGenerator;
 import com.codyssey.api.util.LabelIdGenerator;
+import com.codyssey.api.util.RoleIdGenerator;
+import com.codyssey.api.util.UserIdGenerator;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -28,11 +28,11 @@ public class IdValidator implements ConstraintValidator<ValidId, String> {
         if (id == null) {
             return false;
         }
-        
+
         // Check if it's a valid User ID, Category ID, Role ID, or Label ID
-        return UserIdGenerator.isValidUserId(id) || 
-               CategoryIdGenerator.isValidCategoryId(id) || 
-               RoleIdGenerator.isValidRoleId(id) ||
-               LabelIdGenerator.isValidLabelId(id);
+        return UserIdGenerator.isValidUserId(id) ||
+                CategoryIdGenerator.isValidCategoryId(id) ||
+                RoleIdGenerator.isValidRoleId(id) ||
+                LabelIdGenerator.isValidLabelId(id);
     }
 }

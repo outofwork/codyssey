@@ -20,6 +20,19 @@ public class UserIdGenerator implements IdentifierGenerator {
     private static final String PREFIX = "ACC-";
     private static final int STARTING_NUMBER = 100001;
 
+    /**
+     * Validates if a string is a valid User ID
+     *
+     * @param id The ID to validate
+     * @return true if valid, false otherwise
+     */
+    public static boolean isValidUserId(String id) {
+        if (id == null) {
+            return false;
+        }
+        return id.matches("^ACC-\\d{6}$");
+    }
+
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) {
         Connection connection = null;
@@ -34,7 +47,7 @@ public class UserIdGenerator implements IdentifierGenerator {
             String sql = "SELECT MAX(CAST(SUBSTRING(id, 5) AS INTEGER)) FROM users WHERE id LIKE 'ACC-%'";
             PreparedStatement statement = connection.prepareStatement(sql);
             ResultSet resultSet = statement.executeQuery();
-            
+
             int nextNumber = STARTING_NUMBER;
             if (resultSet.next()) {
                 Integer maxNumber = (Integer) resultSet.getObject(1);
@@ -42,12 +55,12 @@ public class UserIdGenerator implements IdentifierGenerator {
                     nextNumber = maxNumber + 1;
                 }
             }
-            
+
             resultSet.close();
             statement.close();
-            
+
             return PREFIX + String.format("%06d", nextNumber);
-            
+
         } catch (SQLException e) {
             throw new RuntimeException("Failed to generate User ID", e);
         } finally {
@@ -58,18 +71,5 @@ public class UserIdGenerator implements IdentifierGenerator {
                 System.err.println("Failed to release connection: " + e.getMessage());
             }
         }
-    }
-
-    /**
-     * Validates if a string is a valid User ID
-     * 
-     * @param id The ID to validate
-     * @return true if valid, false otherwise
-     */
-    public static boolean isValidUserId(String id) {
-        if (id == null) {
-            return false;
-        }
-        return id.matches("^ACC-\\d{6}$");
     }
 }

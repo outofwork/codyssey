@@ -116,9 +116,9 @@ public interface LabelService {
     /**
      * Check if a label name is available within a category and parent context
      *
-     * @param name the name to check
+     * @param name         the name to check
      * @param categoryCode the category code
-     * @param parentId the parent ID (optional)
+     * @param parentId     the parent ID (optional)
      * @return true if name is available, false otherwise
      */
     boolean checkNameAvailability(String name, String categoryCode, String parentId);

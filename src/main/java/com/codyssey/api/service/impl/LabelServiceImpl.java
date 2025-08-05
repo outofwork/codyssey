@@ -13,11 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -48,7 +44,7 @@ public class LabelServiceImpl implements LabelService {
         if (createDto.getParentId() != null && !createDto.getParentId().trim().isEmpty()) {
             parent = labelRepository.findByIdAndNotDeleted(createDto.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent label not found with ID: " + createDto.getParentId()));
-            
+
             // Ensure parent is in the same category
             if (!parent.getCategory().getId().equals(createDto.getCategoryId())) {
                 throw new IllegalArgumentException("Parent label must be in the same category");
@@ -57,8 +53,8 @@ public class LabelServiceImpl implements LabelService {
 
         // Check name uniqueness within category and parent context
         if (labelRepository.existsByNameAndCategoryAndParent(
-                createDto.getName(), 
-                createDto.getCategoryId(), 
+                createDto.getName(),
+                createDto.getCategoryId(),
                 createDto.getParentId())) {
             throw new DuplicateResourceException("Label name already exists in this category/parent context");
         }
@@ -100,7 +96,7 @@ public class LabelServiceImpl implements LabelService {
                 // Check if parentId is a real ID or needs mapping
                 String actualParentId = tempIdToRealIdMap.getOrDefault(createDto.getParentId(), createDto.getParentId());
                 createDto.setParentId(actualParentId);
-                
+
                 LabelDto createdLabel = createLabel(createDto);
                 createdLabels.add(createdLabel);
             }
@@ -151,9 +147,9 @@ public class LabelServiceImpl implements LabelService {
             if (!label.getName().equals(updateDto.getName())) {
                 String parentId = label.getParent() != null ? label.getParent().getId() : null;
                 if (labelRepository.existsByNameAndCategoryAndParentExcludingId(
-                        updateDto.getName(), 
-                        label.getCategory().getId(), 
-                        parentId, 
+                        updateDto.getName(),
+                        label.getCategory().getId(),
+                        parentId,
                         id)) {
                     throw new DuplicateResourceException("Label name already exists in this category/parent context");
                 }
@@ -173,7 +169,7 @@ public class LabelServiceImpl implements LabelService {
                 // Set new parent
                 Label newParent = labelRepository.findByIdAndNotDeleted(updateDto.getParentId())
                         .orElseThrow(() -> new ResourceNotFoundException("Parent label not found with ID: " + updateDto.getParentId()));
-                
+
                 // Prevent circular references
                 if (isCircularReference(label, newParent)) {
                     throw new IllegalArgumentException("Cannot set parent: would create circular reference");
@@ -183,7 +179,7 @@ public class LabelServiceImpl implements LabelService {
                 if (!newParent.getCategory().getId().equals(label.getCategory().getId())) {
                     throw new IllegalArgumentException("Parent label must be in the same category");
                 }
-                
+
                 label.setParent(newParent);
             }
         }
@@ -290,7 +286,7 @@ public class LabelServiceImpl implements LabelService {
     @Transactional(readOnly = true)
     public boolean checkNameAvailability(String name, String categoryCode, String parentId) {
         log.info("Checking name availability: {} in category: {} with parent: {}", name, categoryCode, parentId);
-        
+
         LabelCategory category = labelCategoryRepository.findByCode(categoryCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Label category not found with code: " + categoryCode));
 
@@ -319,11 +315,11 @@ public class LabelServiceImpl implements LabelService {
         if (potentialParent == null) {
             return false;
         }
-        
+
         if (child.getId().equals(potentialParent.getId())) {
             return true;
         }
-        
+
         return isAncestor(child, potentialParent);
     }
 
@@ -341,12 +337,12 @@ public class LabelServiceImpl implements LabelService {
     private List<Label> getDescendants(Label label) {
         List<Label> descendants = new ArrayList<>();
         List<Label> children = labelRepository.findByParent(label);
-        
+
         for (Label child : children) {
             descendants.add(child);
             descendants.addAll(getDescendants(child));
         }
-        
+
         return descendants;
     }
 

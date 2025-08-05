@@ -51,8 +51,8 @@ public class LabelController {
         return new ResponseEntity<>(createdLabel, HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Create multiple labels in bulk", 
-               description = "Creates multiple labels maintaining parent-child relationships. Can create parent and child from fresh or child of existing parent.")
+    @Operation(summary = "Create multiple labels in bulk",
+            description = "Creates multiple labels maintaining parent-child relationships. Can create parent and child from fresh or child of existing parent.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Labels created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
@@ -226,8 +226,8 @@ public class LabelController {
         return ResponseEntity.ok(categories);
     }
 
-    @Operation(summary = "Check label name availability", 
-               description = "Check if a label name is available within a category and parent context")
+    @Operation(summary = "Check label name availability",
+            description = "Check if a label name is available within a category and parent context")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Availability checked successfully")
     })
@@ -240,7 +240,7 @@ public class LabelController {
             @Parameter(description = "Parent label ID (optional)")
             @RequestParam(required = false) String parentId) {
 
-        log.info("GET /v1/labels/check-availability?name={}&categoryCode={}&parentId={}", 
+        log.info("GET /v1/labels/check-availability?name={}&categoryCode={}&parentId={}",
                 name, categoryCode, parentId);
         boolean available = labelService.checkNameAvailability(name, categoryCode, parentId);
         return ResponseEntity.ok(available);

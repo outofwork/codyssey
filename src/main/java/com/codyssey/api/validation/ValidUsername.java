@@ -19,10 +19,10 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidUsername {
-    
+
     String message() default "Username must be 3-30 characters, start with a letter or number, and contain only letters, numbers, underscore (_), hyphen (-), or dot (.)";
-    
+
     Class<?>[] groups() default {};
-    
+
     Class<? extends Payload>[] payload() default {};
 }
