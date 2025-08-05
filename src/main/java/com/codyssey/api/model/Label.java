@@ -40,7 +40,7 @@ public class Label extends BaseEntity {
     @Id
     @GeneratedValue(generator = "label-id")
     @GenericGenerator(name = "label-id", strategy = "com.codyssey.api.util.LabelIdGenerator")
-    @Column(name = "id", length = 10)
+    @Column(name = "id", length = 32)
     private String id;
 
     /**

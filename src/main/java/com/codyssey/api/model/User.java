@@ -38,14 +38,14 @@ public class User extends BaseEntity {
     @Id
     @GeneratedValue(generator = "user-id")
     @GenericGenerator(name = "user-id", strategy = "com.codyssey.api.util.UserIdGenerator")
-    @Column(name = "id", length = 10)
+    @Column(name = "id", length = 32)
     private String id;
 
     /**
      * Username for authentication
      */
     @NotBlank
-    @Size(max = 50)
+    @Size(max = 64)
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
@@ -69,14 +69,14 @@ public class User extends BaseEntity {
     /**
      * User's first name
      */
-    @Size(max = 50)
+    @Size(max = 64)
     @Column(name = "first_name")
     private String firstName;
 
     /**
      * User's last name
      */
-    @Size(max = 50)
+    @Size(max = 64)
     @Column(name = "last_name")
     private String lastName;
 

@@ -4,53 +4,72 @@ import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.IdentifierGenerator;
 
 import java.io.Serializable;
-import java.security.SecureRandom;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Custom ID generator for Label entities
  * <p>
- * Generates IDs with prefix "LBL-" followed by 6 random characters.
- * Example: "LBL-A3bC9d"
+ * Generates IDs in format: LBL-100001, LBL-100002, etc.
+ * Ensures uniqueness by querying the database for the next available number.
  */
 public class LabelIdGenerator implements IdentifierGenerator {
 
     private static final String PREFIX = "LBL-";
-    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    private static final int SUFFIX_LENGTH = 6;
-    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final int STARTING_NUMBER = 100001;
 
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) {
-        return generateLabelId();
-    }
-
-    /**
-     * Generates a label ID with format LBL-XXXXXX
-     * 
-     * @return A random label ID
-     */
-    public static String generateLabelId() {
-        StringBuilder id = new StringBuilder(PREFIX);
-        
-        for (int i = 0; i < SUFFIX_LENGTH; i++) {
-            int randomIndex = RANDOM.nextInt(CHARACTERS.length());
-            id.append(CHARACTERS.charAt(randomIndex));
+        Connection connection = null;
+        try {
+            connection = session.getJdbcConnectionAccess().obtainConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        
-        return id.toString();
+
+        try {
+            // Get the maximum existing number for labels (only numeric IDs)
+            String sql = "SELECT MAX(CAST(SUBSTRING(id, 5) AS INTEGER)) FROM labels WHERE id ~ '^LBL-\\d{6}$'";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet resultSet = statement.executeQuery();
+            
+            int nextNumber = STARTING_NUMBER;
+            if (resultSet.next()) {
+                Integer maxNumber = (Integer) resultSet.getObject(1);
+                if (maxNumber != null) {
+                    nextNumber = maxNumber + 1;
+                }
+            }
+            
+            resultSet.close();
+            statement.close();
+            
+            return PREFIX + String.format("%06d", nextNumber);
+            
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to generate Label ID", e);
+        } finally {
+            try {
+                session.getJdbcConnectionAccess().releaseConnection(connection);
+            } catch (SQLException e) {
+                // Log error but don't fail the transaction
+                System.err.println("Failed to release connection: " + e.getMessage());
+            }
+        }
     }
 
     /**
-     * Validates if a string is a valid label ID
+     * Validates if a string is a valid Label ID
      * 
      * @param id The ID to validate
      * @return true if valid, false otherwise
      */
     public static boolean isValidLabelId(String id) {
-        if (id == null || id.length() != PREFIX.length() + SUFFIX_LENGTH) {
+        if (id == null) {
             return false;
         }
-        
-        return id.matches("LBL-[A-Za-z0-9]{" + SUFFIX_LENGTH + "}");
+        return id.matches("^LBL-\\d{6}$");
     }
 }

@@ -29,14 +29,14 @@ public class Role extends BaseEntity {
     @Id
     @GeneratedValue(generator = "role-id")
     @GenericGenerator(name = "role-id", strategy = "com.codyssey.api.util.RoleIdGenerator")
-    @Column(name = "id", length = 10)
+    @Column(name = "id", length = 32)
     private String id;
 
     /**
      * Role name (e.g., ROLE_USER, ROLE_ADMIN)
      */
     @NotBlank
-    @Size(max = 50)
+    @Size(max = 128)
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 

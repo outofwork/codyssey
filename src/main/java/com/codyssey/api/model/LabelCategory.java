@@ -33,7 +33,7 @@ public class LabelCategory extends BaseEntity {
     @Id
     @GeneratedValue(generator = "category-id")
     @GenericGenerator(name = "category-id", strategy = "com.codyssey.api.util.CategoryIdGenerator")
-    @Column(name = "id", length = 10)
+    @Column(name = "id", length = 32)
     private String id;
 
     /**

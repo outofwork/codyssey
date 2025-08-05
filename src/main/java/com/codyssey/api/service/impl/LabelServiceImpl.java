@@ -364,29 +364,25 @@ public class LabelServiceImpl implements LabelService {
 
         // Convert category
         if (label.getCategory() != null) {
-            dto.setCategory(convertCategoryToDto(label.getCategory()));
+            dto.setCategory(convertCategoryToSummaryDto(label.getCategory()));
         }
 
         // Convert parent (without children to avoid circular reference)
         if (label.getParent() != null) {
-            LabelDto parentDto = new LabelDto();
+            LabelSummaryDto parentDto = new LabelSummaryDto();
             parentDto.setId(label.getParent().getId());
             parentDto.setName(label.getParent().getName());
-            parentDto.setDescription(label.getParent().getDescription());
-            parentDto.setActive(label.getParent().getActive());
             dto.setParent(parentDto);
         }
 
         // Convert children (without their children to avoid deep nesting)
         if (label.getChildren() != null && !label.getChildren().isEmpty()) {
-            List<LabelDto> childrenDtos = label.getChildren().stream()
+            List<LabelSummaryDto> childrenDtos = label.getChildren().stream()
                     .filter(child -> !child.getDeleted())
                     .map(child -> {
-                        LabelDto childDto = new LabelDto();
+                        LabelSummaryDto childDto = new LabelSummaryDto();
                         childDto.setId(child.getId());
                         childDto.setName(child.getName());
-                        childDto.setDescription(child.getDescription());
-                        childDto.setActive(child.getActive());
                         return childDto;
                     })
                     .collect(Collectors.toList());
@@ -435,6 +431,17 @@ public class LabelServiceImpl implements LabelService {
         dto.setActive(category.getActive());
         dto.setCreatedAt(category.getCreatedAt());
         dto.setUpdatedAt(category.getUpdatedAt());
+        return dto;
+    }
+
+    /**
+     * Convert LabelCategory to Summary DTO
+     */
+    private LabelCategorySummaryDto convertCategoryToSummaryDto(LabelCategory category) {
+        LabelCategorySummaryDto dto = new LabelCategorySummaryDto();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setCode(category.getCode());
         return dto;
     }
 }
