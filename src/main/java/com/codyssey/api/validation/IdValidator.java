@@ -34,6 +34,10 @@ public class IdValidator implements ConstraintValidator<ValidId, String> {
         return UserIdGenerator.isValidUserId(id) ||
                 CategoryIdGenerator.isValidCategoryId(id) ||
                 RoleIdGenerator.isValidRoleId(id) ||
-                LabelIdGenerator.isValidLabelId(id);
+                LabelIdGenerator.isValidLabelId(id) ||
+                QuestionIdGenerator.isValidQuestionId(id) ||
+                QuestionLabelIdGenerator.isValidQuestionLabelId(id) ||
+                QuestionCompanyIdGenerator.isValidQuestionCompanyId(id) ||
+                SourceIdGenerator.isValidSourceId(id);
     }
 }
