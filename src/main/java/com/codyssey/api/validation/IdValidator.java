@@ -1,5 +1,6 @@
 package com.codyssey.api.validation;
 
+import com.codyssey.api.util.*;
 import com.codyssey.api.util.CategoryIdGenerator;
 import com.codyssey.api.util.LabelIdGenerator;
 import com.codyssey.api.util.RoleIdGenerator;
@@ -29,10 +30,17 @@ public class IdValidator implements ConstraintValidator<ValidId, String> {
             return false;
         }
 
-        // Check if it's a valid User ID, Category ID, Role ID, or Label ID
+        // Check if it's a valid ID for any of our entity types
         return UserIdGenerator.isValidUserId(id) ||
                 CategoryIdGenerator.isValidCategoryId(id) ||
                 RoleIdGenerator.isValidRoleId(id) ||
-                LabelIdGenerator.isValidLabelId(id);
+                LabelIdGenerator.isValidLabelId(id) ||
+                QuestionIdGenerator.isValidQuestionId(id) ||
+                SolutionIdGenerator.isValidSolutionId(id) ||
+                QuestionLabelIdGenerator.isValidQuestionLabelId(id) ||
+                QuestionCompanyIdGenerator.isValidQuestionCompanyId(id) ||
+                QuestionLinkIdGenerator.isValidQuestionLinkId(id) ||
+                TestCaseIdGenerator.isValidTestCaseId(id) ||
+                MediaIdGenerator.isValidMediaId(id);
     }
 }
