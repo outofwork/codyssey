@@ -32,12 +32,12 @@ Algorithms
 ├── Graph Algorithms
 │   ├── BFS (Breadth-First Search)
 │   ├── DFS (Depth-First Search)
-│   ├── Dijkstra's Algorithm
+│   ├── Dijkstras Algorithm
 │   ├── Bellman-Ford
 │   ├── Floyd-Warshall
 │   ├── Topological Sort
 │   ├── Union-Find
-│   └── Kruskal’s / Prim’s (MST)
+│   └── Kruskals / Prims (MST)
 ├── Bit Manipulation
 │   ├── XOR Tricks
 │   ├── Set/Clear/Toggle Bit
@@ -56,7 +56,7 @@ Algorithms
 │   ├── KMP (Knuth-Morris-Pratt)
 │   ├── Rabin-Karp
 │   ├── Z-Algorithm
-│   └── Manacher's Algorithm
+│   └── Manachers Algorithm
 ├── Tree / Graph Traversals
 ├── Randomized Algorithms
 ├── Sliding Window
