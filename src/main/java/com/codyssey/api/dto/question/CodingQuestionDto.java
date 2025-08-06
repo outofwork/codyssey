@@ -52,12 +52,6 @@ public class CodingQuestionDto {
     private Long version;
     
     // Related entities counts/summaries
-    private Integer solutionsCount;
-    
-    private Integer testCasesCount;
-    
-    private Integer mediaFilesCount;
-    
     private List<LabelSummaryDto> tags;
     
     private List<LabelSummaryDto> companies;

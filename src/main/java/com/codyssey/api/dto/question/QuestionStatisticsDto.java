@@ -12,9 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class QuestionStatisticsDto {
     private String questionId;
-    private Long solutionsCount;
-    private Long testCasesCount;
-    private Long mediaFilesCount;
     private Long labelsCount;
     private Long companiesCount;
     private Long outgoingLinksCount;

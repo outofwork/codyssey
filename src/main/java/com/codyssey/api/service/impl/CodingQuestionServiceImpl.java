@@ -33,12 +33,9 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
     private final CodingQuestionRepository codingQuestionRepository;
     private final LabelRepository labelRepository;
     private final UserRepository userRepository;
-    private final QuestionSolutionRepository solutionRepository;
     private final QuestionLabelRepository questionLabelRepository;
     private final QuestionCompanyRepository questionCompanyRepository;
     private final QuestionLinkRepository questionLinkRepository;
-    private final QuestionTestCaseRepository testCaseRepository;
-    private final QuestionMediaRepository mediaRepository;
 
     @Override
     public CodingQuestionDto createQuestion(CodingQuestionCreateDto createDto) {
@@ -277,16 +274,12 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
             throw new ResourceNotFoundException("Coding question not found with ID: " + questionId);
         }
 
-        Long solutionsCount = solutionRepository.countByQuestionId(questionId);
-        Long testCasesCount = testCaseRepository.countByQuestionId(questionId);
-        Long mediaFilesCount = mediaRepository.countByQuestionId(questionId);
         Long labelsCount = questionLabelRepository.countByQuestionId(questionId);
         Long companiesCount = questionCompanyRepository.countByQuestionId(questionId);
         Long outgoingLinksCount = questionLinkRepository.countBySourceQuestionId(questionId);
         Long incomingLinksCount = questionLinkRepository.countByTargetQuestionId(questionId);
 
-        return new QuestionStatisticsDto(questionId, solutionsCount, testCasesCount, 
-                mediaFilesCount, labelsCount, companiesCount, outgoingLinksCount, incomingLinksCount);
+        return new QuestionStatisticsDto(questionId, labelsCount, companiesCount, outgoingLinksCount, incomingLinksCount);
     }
 
     // Helper methods for conversion
@@ -316,10 +309,7 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setUpdatedAt(question.getUpdatedAt());
         dto.setVersion(question.getVersion());
 
-        // Add counts
-        dto.setSolutionsCount(solutionRepository.countByQuestionId(question.getId()).intValue());
-        dto.setTestCasesCount(testCaseRepository.countByQuestionId(question.getId()).intValue());
-        dto.setMediaFilesCount(mediaRepository.countByQuestionId(question.getId()).intValue());
+        // Add counts - removed solutions, test cases, and media files
 
         return dto;
     }
@@ -340,7 +330,7 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setPlatformSource(question.getPlatformSource());
         dto.setStatus(question.getStatus().toString());
         dto.setCreatedAt(question.getCreatedAt());
-        dto.setSolutionsCount(solutionRepository.countByQuestionId(question.getId()).intValue());
+        // Solution count removed
 
         return dto;
     }

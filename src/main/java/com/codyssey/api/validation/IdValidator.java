@@ -36,11 +36,8 @@ public class IdValidator implements ConstraintValidator<ValidId, String> {
                 RoleIdGenerator.isValidRoleId(id) ||
                 LabelIdGenerator.isValidLabelId(id) ||
                 QuestionIdGenerator.isValidQuestionId(id) ||
-                SolutionIdGenerator.isValidSolutionId(id) ||
                 QuestionLabelIdGenerator.isValidQuestionLabelId(id) ||
                 QuestionCompanyIdGenerator.isValidQuestionCompanyId(id) ||
-                QuestionLinkIdGenerator.isValidQuestionLinkId(id) ||
-                TestCaseIdGenerator.isValidTestCaseId(id) ||
-                MediaIdGenerator.isValidMediaId(id);
+                QuestionLinkIdGenerator.isValidQuestionLinkId(id);
     }
 }

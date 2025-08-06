@@ -15,7 +15,7 @@ import java.util.List;
  * CodingQuestion Entity
  * <p>
  * Represents a coding question from platforms like LeetCode, HackerRank, etc.
- * with all associated metadata, solutions, test cases, and media.
+ * with all associated metadata.
  */
 @Entity
 @Table(name = "coding_questions",
@@ -130,12 +130,6 @@ public class CodingQuestion extends BaseEntity {
     private User createdByUser;
 
     /**
-     * Associated solutions
-     */
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<QuestionSolution> solutions;
-
-    /**
      * Associated labels/tags
      */
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -158,18 +152,6 @@ public class CodingQuestion extends BaseEntity {
      */
     @OneToMany(mappedBy = "targetQuestion", fetch = FetchType.LAZY)
     private List<QuestionLink> incomingLinks;
-
-    /**
-     * Test cases
-     */
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<QuestionTestCase> testCases;
-
-    /**
-     * Media files
-     */
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<QuestionMedia> mediaFiles;
 
     /**
      * Constructor with required fields

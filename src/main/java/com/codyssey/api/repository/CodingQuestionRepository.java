@@ -123,13 +123,13 @@ public interface CodingQuestionRepository extends JpaRepository<CodingQuestion, 
     boolean existsByTitleAndPlatformSource(@Param("title") String title, @Param("platformSource") String platformSource);
 
     /**
-     * Find questions with their solution counts
+     * Find questions with pagination
      *
      * @param pageable pagination information
-     * @return Page of questions with solution counts
+     * @return Page of questions
      */
-    @Query("SELECT q FROM CodingQuestion q LEFT JOIN q.solutions s WHERE q.deleted = false GROUP BY q")
-    Page<CodingQuestion> findQuestionsWithSolutionCounts(Pageable pageable);
+    @Query("SELECT q FROM CodingQuestion q WHERE q.deleted = false")
+    Page<CodingQuestion> findQuestionsWithPagination(Pageable pageable);
 
     /**
      * Find questions created by a specific user
