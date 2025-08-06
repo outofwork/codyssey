@@ -1,0 +1,75 @@
+COMPANY_TAGS
+├── FAANG
+│   ├── Meta
+│   ├── Apple
+│   ├── Amazon
+│   ├── Netflix
+│   └── Alphabet (Google)
+├── Big Tech
+│   ├── Microsoft
+│   ├── Adobe
+│   ├── Salesforce
+│   ├── Oracle
+│   ├── Cisco
+│   ├── IBM
+│   ├── LinkedIn
+│   ├── Dropbox
+│   ├── Zoom
+│   ├── Spotify
+│   ├── Pinterest
+│   ├── Snap
+│   ├── Roblox
+│   ├── Yelp
+│   ├── Expedia
+│   ├── TikTok
+│   ├── ByteDance
+│   ├── Huawei
+│   ├── Samsung
+│   ├── Nvidia
+│   └── Qualcomm
+├── FinTech & Banking
+│   ├── Goldman Sachs
+│   ├── JPMorgan Chase
+│   ├── Morgan Stanley
+│   ├── DE Shaw
+│   └── Intuit
+├── Indian Product Companies
+│   ├── Flipkart
+│   ├── Swiggy
+│   ├── Zomato
+│   ├── Paytm
+│   ├── PhonePe
+│   ├── Ola
+│   ├── Razorpay
+│   ├── Meesho
+│   └── InMobi
+├── HFTs (High-Frequency Trading Firms)
+│   ├── Jane Street
+│   ├── Citadel Securities
+│   ├── Hudson River Trading (HRT)
+│   ├── Jump Trading
+│   ├── Tower Research
+│   ├── DRW
+│   ├── IMC Trading
+│   ├── Optiver
+│   └── Akuna Capital
+├── Rideshare & Delivery
+│   ├── Uber
+│   ├── Lyft
+│   ├── Grab
+│   └── Ola
+├── Tech Startups / Scaleups
+│   ├── ThoughtWorks
+│   ├── Zoho
+│   ├── Meesho
+│   ├── InMobi
+│   ├── Hike
+│   ├── Razorpay
+│   └── Cursora
+└── IT Service Providers
+    ├── Infosys
+    ├── TCS
+    ├── Wipro
+    ├── Accenture
+    ├── Capgemini
+    └── Cognizant

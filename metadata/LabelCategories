@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Difficulty Level",
+    "category": "DIFFICULTY_LEVEL",
+    "description": "Categorizes questions by complexity level, such as Easy, Medium, Hard, Very Hard, and Expert."
+  },
+  {
+    "name": "Data Structures",
+    "category": "DATA_STRUCTURES",
+    "description": "Tags based on the primary data structure involved, like Arrays, Linked Lists, Trees, Graphs, Heaps, etc."
+  },
+  {
+    "name": "Algorithms",
+    "category": "ALGORITHMS",
+    "description": "Tags based on algorithmic approach, such as Sorting, Searching, Dynamic Programming, Backtracking, etc."
+  },
+  {
+    "name": "Company Tags",
+    "category": "COMPANY_TAGS",
+    "description": "Indicates companies that have asked or are known for asking this question in interviews, like Google, Microsoft, Amazon, etc."
+  },
+  {
+    "name": "Source",
+    "category": "SOURCE",
+    "description": "Shows where the question originated or was inspired from, e.g., LeetCode, GeeksforGeeks, Project Euler, HackerRank."
+  },
+  {
+    "name": "Topic Tags",
+    "category": "TOPIC_TAGS",
+    "description": "Tags representing key topics or techniques, such as Greedy, Bit Manipulation, Recursion, Sliding Window, etc."
+  },
+  {
+    "name": "Question Type",
+    "category": "QUESTION_TYPE",
+    "description": "Classifies the type of question: Coding, System Design, Behavioral, or SQL."
+  },
+  {
+    "name": "Environment / Round Type",
+    "category": "ENVIRONMENT_ROUND_TYPE",
+    "description": "Represents the interview stage or platform where the question is asked: Online Assessment, Phone Screen, Onsite Interview."
+  },
+  {
+    "name": "Programming Language Tags",
+    "category": "PROGRAMMING_LANGUAGE_TAGS",
+    "description": "Identifies the language(s) used or required to solve the problem, such as Java, Python, C++, JavaScript, etc."
+  },
+  {
+    "name": "Frequency / Popularity",
+    "category": "FREQUENCY_POPULARITY",
+    "description": "Indicates how frequently a question is asked or its signal strength, like Most Frequently Asked, High Signal, Rarely Asked."
+  }
+]

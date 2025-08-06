@@ -1,0 +1,63 @@
+DATA_STRUCTURE
+├── Linear Data Structures
+│   ├── Array
+│   ├── Linked List
+│   │   ├── Singly Linked List
+│   │   ├── Doubly Linked List
+│   │   └── Circular Linked List
+│   ├── Stack
+│   └── Queue
+│       ├── Simple Queue
+│       ├── Circular Queue
+│       ├── Priority Queue
+│       └── Deque
+│
+├── Hashing
+│   ├── Hash Table / Hash Map
+│   ├── Hash Set
+│
+├── Trees
+│   ├── Binary Tree
+│   │   ├── Full Binary Tree
+│   │   └── Complete Binary Tree
+│   ├── Binary Search Tree (BST)
+│   ├── AVL Tree
+│   ├── Red-Black Tree
+│   ├── Segment Tree
+│   ├── Fenwick Tree (Binary Indexed Tree)
+│   ├── Interval Tree
+│   ├── B-Tree
+│   ├── B+ Tree
+│   ├── Trie (Prefix Tree)
+|       ├── Compressed Trie
+│       ├── Suffix Trie
+│       └── Radix Tree
+│   ├── Suffix Tree
+│   ├── K-D Tree
+│   └── N-ary Tree
+│
+├── Graphs
+│   ├── Directed Graph
+│   ├── Undirected Graph
+│   ├── Weighted Graph
+│   ├── Unweighted Graph
+│   ├── Adjacency List
+│   ├── Adjacency Matrix
+│   └── Edge List
+│
+├── Heaps
+│   ├── Min Heap
+│   ├── Max Heap
+│   ├── Binomial Heap
+│   ├── Fibonacci Heap
+│   └── Pairing Heap
+│
+├── Disjoint Set / Union-Find
+│
+└── Probabilistic Data Structures
+    ├── Bloom Filter
+    ├── Counting Bloom Filter
+    ├── Cuckoo Filter
+    ├── Count-Min Sketch
+    ├── HyperLogLog
+    └── Skip List
