@@ -293,47 +293,158 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(readOnly = true)
     public ArticleStatisticsDto getArticleStatistics() {
-        log.info("Generating article statistics");
+        log.info("Generating comprehensive article statistics");
         
         ArticleStatisticsDto stats = new ArticleStatisticsDto();
         
-        // Count total articles
+        // Get all articles and article labels for analysis
         List<Article> allArticles = articleRepository.findByDeletedFalse();
-        stats.setTotalArticles((long) allArticles.size());
-        stats.setActiveArticles(articleRepository.countByStatus(Article.ArticleStatus.ACTIVE));
-        stats.setDraftArticles(articleRepository.countByStatus(Article.ArticleStatus.DRAFT));
-        stats.setDeprecatedArticles(articleRepository.countByStatus(Article.ArticleStatus.DEPRECATED));
-        
-        // Count total tags (labels used in articles)
         List<ArticleLabel> allArticleLabels = articleLabelRepository.findByDeletedFalse();
-        Set<String> uniqueLabelIds = allArticleLabels.stream()
-                .map(al -> al.getLabel().getId())
-                .collect(Collectors.toSet());
-        stats.setTotalTags((long) uniqueLabelIds.size());
         
-        // Find most used tag
-        Map<String, Long> labelCounts = allArticleLabels.stream()
-                .collect(Collectors.groupingBy(
-                    al -> al.getLabel().getName(),
-                    Collectors.counting()
-                ));
+        // Overall Statistics
+        stats.setTotalArticles((long) allArticles.size());
+        stats.setActiveArticles(allArticles.stream()
+                .filter(a -> a.getStatus() == Article.ArticleStatus.ACTIVE)
+                .count());
+        stats.setDraftArticles(allArticles.stream()
+                .filter(a -> a.getStatus() == Article.ArticleStatus.DRAFT)
+                .count());
+        stats.setDeprecatedArticles(allArticles.stream()
+                .filter(a -> a.getStatus() == Article.ArticleStatus.DEPRECATED)
+                .count());
         
-        Optional<Map.Entry<String, Long>> mostUsedEntry = labelCounts.entrySet().stream()
-                .max(Map.Entry.comparingByValue());
+        // Source Statistics
+        List<Source> allSources = sourceRepository.findByDeletedFalse();
+        stats.setTotalSources((long) allSources.size());
         
-        if (mostUsedEntry.isPresent()) {
-            stats.setMostUsedTag(mostUsedEntry.get().getKey());
-        }
-        
-        // Count articles with and without source
         long articlesWithSource = allArticles.stream()
                 .filter(a -> a.getSource() != null)
                 .count();
         stats.setArticlesWithSource(articlesWithSource);
         stats.setArticlesWithoutSource(stats.getTotalArticles() - articlesWithSource);
         
+        // Articles by Source
+        Map<String, Long> sourceCountMap = allArticles.stream()
+                .filter(a -> a.getSource() != null)
+                .collect(Collectors.groupingBy(
+                    a -> a.getSource().getId(),
+                    Collectors.counting()
+                ));
+        
+        List<ArticleStatisticsDto.SourceStatistic> sourceStats = allSources.stream()
+                .map(source -> {
+                    Long count = sourceCountMap.getOrDefault(source.getId(), 0L);
+                    Double percentage = stats.getTotalArticles() > 0 ? 
+                        (count.doubleValue() / stats.getTotalArticles()) * 100 : 0.0;
+                    return new ArticleStatisticsDto.SourceStatistic(
+                        source.getId(), source.getName(), source.getCode(), count, percentage);
+                })
+                .sorted((s1, s2) -> s2.getArticleCount().compareTo(s1.getArticleCount()))
+                .collect(Collectors.toList());
+        stats.setArticlesBySource(sourceStats);
+        
+        // Tag/Label Statistics
+        Set<String> uniqueLabelIds = allArticleLabels.stream()
+                .map(al -> al.getLabel().getId())
+                .collect(Collectors.toSet());
+        stats.setTotalUniqueTagsUsed((long) uniqueLabelIds.size());
+        
+        // Articles by Tag
+        Map<String, List<ArticleLabel>> labelGroupMap = allArticleLabels.stream()
+                .collect(Collectors.groupingBy(al -> al.getLabel().getId()));
+        
+        List<ArticleStatisticsDto.TagStatistic> tagStats = labelGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String labelId = entry.getKey();
+                    List<ArticleLabel> articleLabelsForLabel = entry.getValue();
+                    
+                    if (articleLabelsForLabel.isEmpty()) return null;
+                    
+                    Label label = articleLabelsForLabel.get(0).getLabel();
+                    Long articleCount = (long) articleLabelsForLabel.size();
+                    Long primaryCount = articleLabelsForLabel.stream()
+                        .filter(al -> al.getIsPrimary())
+                        .count();
+                    Long secondaryCount = articleCount - primaryCount;
+                    
+                    Double avgRelevance = articleLabelsForLabel.stream()
+                        .mapToInt(ArticleLabel::getRelevanceScore)
+                        .average()
+                        .orElse(0.0);
+                    
+                    return new ArticleStatisticsDto.TagStatistic(
+                        labelId, label.getName(), label.getCategory().getCode(),
+                        articleCount, primaryCount, secondaryCount, avgRelevance);
+                })
+                .filter(stat -> stat != null)
+                .sorted((t1, t2) -> t2.getArticleCount().compareTo(t1.getArticleCount()))
+                .collect(Collectors.toList());
+        stats.setArticlesByTag(tagStats);
+        
+        // Most used tag
+        if (!tagStats.isEmpty()) {
+            stats.setMostUsedTag(tagStats.get(0).getLabelName());
+        }
+        
+        // Category Statistics
+        Map<String, List<ArticleLabel>> categoryGroupMap = allArticleLabels.stream()
+                .collect(Collectors.groupingBy(al -> al.getLabel().getCategory().getId()));
+        
+        List<ArticleStatisticsDto.CategoryStatistic> categoryStats = categoryGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String categoryId = entry.getKey();
+                    List<ArticleLabel> articleLabelsForCategory = entry.getValue();
+                    
+                    if (articleLabelsForCategory.isEmpty()) return null;
+                    
+                    LabelCategory category = articleLabelsForCategory.get(0).getLabel().getCategory();
+                    Long articleCount = articleLabelsForCategory.stream()
+                        .map(al -> al.getArticle().getId())
+                        .distinct()
+                        .count();
+                    
+                    Set<String> uniqueLabels = articleLabelsForCategory.stream()
+                        .map(al -> al.getLabel().getId())
+                        .collect(Collectors.toSet());
+                    
+                    List<String> topLabels = articleLabelsForCategory.stream()
+                        .collect(Collectors.groupingBy(al -> al.getLabel().getName(), Collectors.counting()))
+                        .entrySet().stream()
+                        .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
+                        .limit(5)
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
+                    
+                    return new ArticleStatisticsDto.CategoryStatistic(
+                        categoryId, category.getName(), category.getCode(),
+                        articleCount, (long) uniqueLabels.size(), topLabels);
+                })
+                .filter(stat -> stat != null)
+                .sorted((c1, c2) -> c2.getArticleCount().compareTo(c1.getArticleCount()))
+                .collect(Collectors.toList());
+        stats.setArticlesByCategory(categoryStats);
+        stats.setTotalCategories((long) categoryStats.size());
+        
+        // Monthly Statistics (articles by creation month)
+        Map<String, Long> monthlyCountMap = allArticles.stream()
+                .collect(Collectors.groupingBy(
+                    a -> a.getCreatedAt().toLocalDate().toString().substring(0, 7), // "YYYY-MM"
+                    Collectors.counting()
+                ));
+        
+        List<ArticleStatisticsDto.MonthlyStatistic> monthlyStats = monthlyCountMap.entrySet().stream()
+                .map(entry -> new ArticleStatisticsDto.MonthlyStatistic(entry.getKey(), entry.getValue()))
+                .sorted((m1, m2) -> m2.getMonth().compareTo(m1.getMonth()))
+                .collect(Collectors.toList());
+        stats.setArticlesByMonth(monthlyStats);
+        
+        // Also set totalTags for backwards compatibility
+        stats.setTotalTags(stats.getTotalUniqueTagsUsed());
+        
         return stats;
     }
+
+
 
     @Override
     @Transactional(readOnly = true)

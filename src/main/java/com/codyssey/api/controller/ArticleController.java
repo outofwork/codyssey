@@ -238,6 +238,8 @@ public class ArticleController {
         return ResponseEntity.ok(statistics);
     }
 
+
+
     /**
      * Check if article title is available within a source
      * 

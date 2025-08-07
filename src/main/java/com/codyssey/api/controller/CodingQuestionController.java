@@ -274,6 +274,18 @@ public class CodingQuestionController {
     }
 
     /**
+     * Get comprehensive overall question statistics with breakdowns
+     * 
+     * @return comprehensive question statistics
+     */
+    @GetMapping("/overall-statistics")
+    public ResponseEntity<QuestionsOverallStatisticsDto> getOverallQuestionStatistics() {
+        log.info("GET /v1/coding-questions/overall-statistics - Retrieving comprehensive question statistics");
+        QuestionsOverallStatisticsDto statistics = codingQuestionService.getOverallQuestionStatistics();
+        return ResponseEntity.ok(statistics);
+    }
+
+    /**
      * Check if a question title is available within a source
      * 
      * @param title question title

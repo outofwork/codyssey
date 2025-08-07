@@ -139,9 +139,9 @@ public interface ArticleService {
                                               String searchTerm);
 
     /**
-     * Get article statistics
+     * Get comprehensive article statistics with detailed breakdowns
      *
-     * @return article statistics
+     * @return comprehensive article statistics
      */
     ArticleStatisticsDto getArticleStatistics();
 

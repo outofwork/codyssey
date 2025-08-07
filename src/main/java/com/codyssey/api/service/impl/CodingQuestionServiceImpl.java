@@ -418,6 +418,214 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
 
     @Override
     @Transactional(readOnly = true)
+    public QuestionsOverallStatisticsDto getOverallQuestionStatistics() {
+        log.info("Generating comprehensive question statistics");
+        
+        QuestionsOverallStatisticsDto stats = new QuestionsOverallStatisticsDto();
+        
+        // Get all questions, labels, and companies for analysis
+        List<CodingQuestion> allQuestions = codingQuestionRepository.findByDeletedFalse();
+        List<QuestionLabel> allQuestionLabels = questionLabelRepository.findByDeletedFalse();
+        List<QuestionCompany> allQuestionCompanies = questionCompanyRepository.findByDeletedFalse();
+        
+        // Overall Statistics
+        stats.setTotalQuestions((long) allQuestions.size());
+        stats.setActiveQuestions(allQuestions.stream()
+                .filter(q -> q.getStatus() == CodingQuestion.QuestionStatus.ACTIVE)
+                .count());
+        stats.setDraftQuestions(allQuestions.stream()
+                .filter(q -> q.getStatus() == CodingQuestion.QuestionStatus.DRAFT)
+                .count());
+        stats.setDeprecatedQuestions(allQuestions.stream()
+                .filter(q -> q.getStatus() == CodingQuestion.QuestionStatus.DEPRECATED)
+                .count());
+        
+        // Source Statistics
+        List<Source> allSources = sourceRepository.findByDeletedFalse();
+        stats.setTotalSources((long) allSources.size());
+        
+        long questionsWithSource = allQuestions.stream()
+                .filter(q -> q.getSource() != null)
+                .count();
+        stats.setQuestionsWithSource(questionsWithSource);
+        stats.setQuestionsWithoutSource(stats.getTotalQuestions() - questionsWithSource);
+        
+        // Questions by Source
+        Map<String, Long> sourceCountMap = allQuestions.stream()
+                .filter(q -> q.getSource() != null)
+                .collect(Collectors.groupingBy(
+                    q -> q.getSource().getId(),
+                    Collectors.counting()
+                ));
+        
+        List<QuestionsOverallStatisticsDto.SourceStatistic> sourceStats = allSources.stream()
+                .map(source -> {
+                    Long count = sourceCountMap.getOrDefault(source.getId(), 0L);
+                    String uri = "/api/v1/coding-questions/source/" + source.getUrlSlug();
+                    return new QuestionsOverallStatisticsDto.SourceStatistic(
+                        source.getName(), count, uri);
+                })
+                .sorted((s1, s2) -> s2.getQuestionCount().compareTo(s1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsBySource(sourceStats);
+        
+        // Difficulty Statistics
+        Map<String, Long> difficultyCountMap = allQuestions.stream()
+                .filter(q -> q.getDifficultyLabel() != null)
+                .collect(Collectors.groupingBy(
+                    q -> q.getDifficultyLabel().getId(),
+                    Collectors.counting()
+                ));
+        
+        List<QuestionsOverallStatisticsDto.DifficultyStatistic> difficultyStats = 
+                difficultyCountMap.entrySet().stream()
+                .map(entry -> {
+                    String labelId = entry.getKey();
+                    Long count = entry.getValue();
+                    
+                    // Find the difficulty label
+                    Optional<Label> diffLabel = allQuestions.stream()
+                        .map(CodingQuestion::getDifficultyLabel)
+                        .filter(l -> l != null && l.getId().equals(labelId))
+                        .findFirst();
+                    
+                    if (diffLabel.isPresent()) {
+                        String uri = "/api/v1/coding-questions/difficulty/" + diffLabel.get().getUrlSlug();
+                        return new QuestionsOverallStatisticsDto.DifficultyStatistic(
+                            diffLabel.get().getName(), count, uri);
+                    }
+                    return null;
+                })
+                .filter(stat -> stat != null)
+                .sorted((d1, d2) -> d2.getQuestionCount().compareTo(d1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByDifficulty(difficultyStats);
+        
+        // Tag/Label Statistics
+        Set<String> uniqueLabelIds = allQuestionLabels.stream()
+                .map(ql -> ql.getLabel().getId())
+                .collect(Collectors.toSet());
+        stats.setTotalUniqueTagsUsed((long) uniqueLabelIds.size());
+        
+        // Questions by Tag
+        Map<String, List<QuestionLabel>> labelGroupMap = allQuestionLabels.stream()
+                .collect(Collectors.groupingBy(ql -> ql.getLabel().getId()));
+        
+        List<QuestionsOverallStatisticsDto.TagStatistic> tagStats = labelGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String labelId = entry.getKey();
+                    List<QuestionLabel> questionLabelsForLabel = entry.getValue();
+                    
+                    if (questionLabelsForLabel.isEmpty()) return null;
+                    
+                    Label label = questionLabelsForLabel.get(0).getLabel();
+                    Long questionCount = (long) questionLabelsForLabel.size();
+                    Long primaryCount = questionLabelsForLabel.stream()
+                        .filter(ql -> ql.getIsPrimary())
+                        .count();
+                    Long secondaryCount = questionCount - primaryCount;
+                    
+                    String uri = "/api/v1/coding-questions/label/" + label.getUrlSlug();
+                    
+                    return new QuestionsOverallStatisticsDto.TagStatistic(
+                        label.getName(), label.getCategory().getCode(), questionCount, uri);
+                })
+                .filter(stat -> stat != null)
+                .sorted((t1, t2) -> t2.getQuestionCount().compareTo(t1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByTag(tagStats);
+        
+        // Most used tag
+        if (!tagStats.isEmpty()) {
+            stats.setMostUsedTag(tagStats.get(0).getLabelName());
+        }
+        
+        // Category Statistics
+        Map<String, List<QuestionLabel>> categoryGroupMap = allQuestionLabels.stream()
+                .collect(Collectors.groupingBy(ql -> ql.getLabel().getCategory().getId()));
+        
+        List<QuestionsOverallStatisticsDto.CategoryStatistic> categoryStats = categoryGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String categoryId = entry.getKey();
+                    List<QuestionLabel> questionLabelsForCategory = entry.getValue();
+                    
+                    if (questionLabelsForCategory.isEmpty()) return null;
+                    
+                    LabelCategory category = questionLabelsForCategory.get(0).getLabel().getCategory();
+                    Long questionCount = questionLabelsForCategory.stream()
+                        .map(ql -> ql.getQuestion().getId())
+                        .distinct()
+                        .count();
+                    
+                    Set<String> uniqueLabels = questionLabelsForCategory.stream()
+                        .map(ql -> ql.getLabel().getId())
+                        .collect(Collectors.toSet());
+                    
+                    List<String> topLabels = questionLabelsForCategory.stream()
+                        .collect(Collectors.groupingBy(ql -> ql.getLabel().getName(), Collectors.counting()))
+                        .entrySet().stream()
+                        .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
+                        .limit(5)
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
+                    
+                    return new QuestionsOverallStatisticsDto.CategoryStatistic(
+                        categoryId, category.getName(), category.getCode(),
+                        questionCount, (long) uniqueLabels.size(), topLabels);
+                })
+                .filter(stat -> stat != null)
+                .sorted((c1, c2) -> c2.getQuestionCount().compareTo(c1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByCategory(categoryStats);
+        stats.setTotalCategories((long) categoryStats.size());
+        
+        // Company Statistics
+        Set<String> uniqueCompanyIds = allQuestionCompanies.stream()
+                .map(qc -> qc.getCompanyLabel().getId())
+                .collect(Collectors.toSet());
+        stats.setTotalCompanies((long) uniqueCompanyIds.size());
+        
+        long questionsWithCompanies = allQuestionCompanies.stream()
+                .map(qc -> qc.getQuestion().getId())
+                .distinct()
+                .count();
+        stats.setQuestionsWithCompanies(questionsWithCompanies);
+        stats.setQuestionsWithoutCompanies(stats.getTotalQuestions() - questionsWithCompanies);
+        
+        // Questions by Company
+        Map<String, List<QuestionCompany>> companyGroupMap = allQuestionCompanies.stream()
+                .collect(Collectors.groupingBy(qc -> qc.getCompanyLabel().getId()));
+        
+        List<QuestionsOverallStatisticsDto.CompanyStatistic> companyStats = companyGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String companyLabelId = entry.getKey();
+                    List<QuestionCompany> questionCompaniesForLabel = entry.getValue();
+                    
+                    if (questionCompaniesForLabel.isEmpty()) return null;
+                    
+                    Label companyLabel = questionCompaniesForLabel.get(0).getCompanyLabel();
+                    Long questionCount = (long) questionCompaniesForLabel.size();
+                    
+                    String uri = "/api/v1/coding-questions/company/" + companyLabel.getUrlSlug();
+                    
+                    return new QuestionsOverallStatisticsDto.CompanyStatistic(
+                        companyLabel.getName(), questionCount, uri);
+                })
+                .filter(stat -> stat != null)
+                .sorted((c1, c2) -> c2.getQuestionCount().compareTo(c1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByCompany(companyStats);
+        
+        // Most asking company
+        if (!companyStats.isEmpty()) {
+            stats.setMostAskingCompany(companyStats.get(0).getCompanyName());
+        }
+        
+        return stats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean checkTitleAvailability(String title, String sourceId) {
         log.info("Checking title availability: {} for source: {}", title, sourceId);
         return !codingQuestionRepository.existsByTitleAndSourceId(title, sourceId);

@@ -183,6 +183,13 @@ public interface CodingQuestionService {
     QuestionStatisticsDto getQuestionStatistics(String questionId);
 
     /**
+     * Get overall coding question statistics with comprehensive breakdowns
+     *
+     * @return overall question statistics
+     */
+    QuestionsOverallStatisticsDto getOverallQuestionStatistics();
+
+    /**
      * Check if a question title is available within a source
      *
      * @param title question title
