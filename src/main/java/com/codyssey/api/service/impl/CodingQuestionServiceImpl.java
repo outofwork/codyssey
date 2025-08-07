@@ -15,8 +15,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.core.io.ClassPathResource;
 
 /**
  * Implementation of CodingQuestionService
@@ -397,6 +402,7 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setTitle(question.getTitle());
         dto.setShortDescription(question.getShortDescription());
         dto.setFilePath(question.getFilePath());
+        dto.setContentUrl("/api/v1/coding-questions/" + question.getId() + "/content");
         
         if (question.getDifficultyLabel() != null) {
             LabelSummaryDto difficultyDto = new LabelSummaryDto();
@@ -475,5 +481,41 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setCreatedAt(question.getCreatedAt());
 
         return dto;
+    }
+
+    @Override
+    public String getQuestionContent(String id) throws Exception {
+        log.info("Fetching content for question ID: {}", id);
+        
+        // First get the question to retrieve the file path
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with ID: " + id));
+        
+        String filePath = question.getFilePath();
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalStateException("No file path found for question ID: " + id);
+        }
+        
+        // Read the file content
+        try {
+            // Remove "src/main/resources/" prefix if present, as ClassPathResource looks in classpath
+            String resourcePath = filePath;
+            if (resourcePath.startsWith("src/main/resources/")) {
+                resourcePath = resourcePath.substring("src/main/resources/".length());
+            }
+            
+            // Use ClassPathResource to read from resources folder
+            ClassPathResource resource = new ClassPathResource(resourcePath);
+            if (!resource.exists()) {
+                throw new FileNotFoundException("Question file not found: " + filePath);
+            }
+            
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            log.error("Error reading question content file: {}", filePath, e);
+            throw new Exception("Failed to read question content: " + e.getMessage(), e);
+        }
     }
 }

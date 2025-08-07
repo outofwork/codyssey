@@ -235,4 +235,25 @@ public class CodingQuestionController {
         boolean isAvailable = codingQuestionService.checkTitleAvailability(title, sourceId);
         return ResponseEntity.ok(isAvailable);
     }
+
+    /**
+     * Get the markdown content of a coding question
+     * 
+     * @param id coding question ID
+     * @return markdown content of the question
+     */
+    @GetMapping("/{id}/content")
+    public ResponseEntity<String> getQuestionContent(@PathVariable @ValidId String id) {
+        log.info("GET /v1/coding-questions/{}/content - Fetching question content", id);
+        try {
+            String content = codingQuestionService.getQuestionContent(id);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "text/markdown; charset=UTF-8")
+                    .body(content);
+        } catch (Exception e) {
+            log.error("Error reading question content for ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error reading question content: " + e.getMessage());
+        }
+    }
 }

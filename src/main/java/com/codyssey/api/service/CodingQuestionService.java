@@ -171,4 +171,13 @@ public interface CodingQuestionService {
      * @param companyLabelId company label ID
      */
     void removeCompanyFromQuestion(String questionId, String companyLabelId);
+
+    /**
+     * Get the markdown content of a coding question
+     *
+     * @param id coding question ID
+     * @return markdown content of the question
+     * @throws Exception if file cannot be read
+     */
+    String getQuestionContent(String id) throws Exception;
 }

@@ -26,6 +26,8 @@ public class CodingQuestionDto {
     
     private String filePath;
     
+    private String contentUrl;
+    
     private LabelSummaryDto difficultyLabel;
     
     private SourceSummaryDto source;
