@@ -27,6 +27,7 @@ public class DataInitializer implements CommandLineRunner {
     private final LabelCategoryRepository labelCategoryRepository;
     private final CodingQuestionRepository codingQuestionRepository;
     private final UserRepository userRepository;
+    private final ArticleRepository articleRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -65,6 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         generateLabelUrlSlugs();
         generateUserUrlSlugs();
         generateCodingQuestionUrlSlugs();
+        generateArticleUrlSlugs();
         
         log.info("URL slug generation completed");
     }
@@ -203,6 +205,34 @@ public class DataInitializer implements CommandLineRunner {
                 existingSlugs.add(uniqueSlug);
                 codingQuestionRepository.save(question);
                 log.debug("Generated URL slug '{}' for question '{}'", uniqueSlug, question.getTitle());
+            }
+        }
+    }
+
+    private void generateArticleUrlSlugs() {
+        List<Article> articlesWithoutSlugs = articleRepository.findByDeletedFalse()
+                .stream()
+                .filter(article -> article.getUrlSlug() == null || article.getUrlSlug().trim().isEmpty())
+                .toList();
+
+        if (!articlesWithoutSlugs.isEmpty()) {
+            log.info("Generating URL slugs for {} articles", articlesWithoutSlugs.size());
+            
+            Set<String> existingSlugs = new HashSet<>();
+            articleRepository.findByDeletedFalse().forEach(article -> {
+                if (article.getUrlSlug() != null && !article.getUrlSlug().trim().isEmpty()) {
+                    existingSlugs.add(article.getUrlSlug());
+                }
+            });
+
+            for (Article article : articlesWithoutSlugs) {
+                String articleTypeCode = article.getArticleType().toString().toLowerCase();
+                String baseSlug = UrlSlugGenerator.generateArticleSlug(article.getTitle(), articleTypeCode);
+                String uniqueSlug = UrlSlugGenerator.generateUniqueSlug(baseSlug, existingSlugs);
+                article.setUrlSlug(uniqueSlug);
+                existingSlugs.add(uniqueSlug);
+                articleRepository.save(article);
+                log.debug("Generated URL slug '{}' for article '{}'", uniqueSlug, article.getTitle());
             }
         }
     }

@@ -133,4 +133,26 @@ public class UrlSlugGenerator {
     public static String generateCategorySlug(String categoryName) {
         return generateSlug(categoryName);
     }
+
+    /**
+     * Generate a slug for articles combining title and article type
+     * Format: {title-slug}-{article-type}
+     * 
+     * @param title the article title
+     * @param articleType the article type (e.g., "data_structure", "algorithm", "system_design")
+     * @return formatted article slug
+     */
+    public static String generateArticleSlug(String title, String articleType) {
+        String titleSlug = generateSlug(title);
+        String typeSlug = articleType != null ? generateSlug(articleType) : "";
+        
+        if (titleSlug.isEmpty()) {
+            return typeSlug;
+        }
+        if (typeSlug.isEmpty()) {
+            return titleSlug;
+        }
+        
+        return titleSlug + "-" + typeSlug;
+    }
 }

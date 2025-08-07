@@ -1,6 +1,7 @@
 package com.codyssey.api.controller;
 
 import com.codyssey.api.dto.question.*;
+import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.service.CodingQuestionService;
 import com.codyssey.api.validation.ValidId;
 import jakarta.validation.Valid;
@@ -291,19 +292,27 @@ public class CodingQuestionController {
     /**
      * Get the markdown content of a coding question
      * 
-     * @param id coding question ID
+     * @param identifier coding question ID or URL slug
      * @return markdown content of the question
      */
-    @GetMapping("/{id}/content")
-    public ResponseEntity<String> getQuestionContent(@PathVariable @ValidId String id) {
-        log.info("GET /v1/coding-questions/{}/content - Fetching question content", id);
+    @GetMapping("/{identifier}/content")
+    public ResponseEntity<String> getQuestionContent(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/coding-questions/{}/content - Fetching question content", identifier);
         try {
-            String content = codingQuestionService.getQuestionContent(id);
+            String content;
+            // First try to get by URL slug, then fall back to ID
+            try {
+                content = codingQuestionService.getQuestionContentByUrlSlug(identifier);
+            } catch (ResourceNotFoundException e) {
+                // If not found by URL slug, try by ID
+                log.info("Question not found by URL slug {}, trying by ID", identifier);
+                content = codingQuestionService.getQuestionContent(identifier);
+            }
             return ResponseEntity.ok()
                     .header("Content-Type", "text/markdown; charset=UTF-8")
                     .body(content);
         } catch (Exception e) {
-            log.error("Error reading question content for ID {}: {}", id, e.getMessage());
+            log.error("Error reading question content for identifier {}: {}", identifier, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error reading question content: " + e.getMessage());
         }

@@ -553,6 +553,11 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setOriginalUrl(question.getOriginalUrl());
         dto.setStatus(question.getStatus().toString());
         dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
+        
+        // Use URL slug if available, otherwise fallback to ID for content URL
+        String identifier = question.getUrlSlug() != null ? question.getUrlSlug() : question.getId();
+        dto.setContentUrl("/api/v1/coding-questions/" + identifier + "/content");
+        
         dto.setVersion(question.getVersion());
 
         // Populate associated labels/tags
@@ -606,6 +611,10 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         }
         dto.setStatus(question.getStatus().toString());
         dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
+        
+        // Use URL slug if available, otherwise fallback to ID for content URL
+        String identifier = question.getUrlSlug() != null ? question.getUrlSlug() : question.getId();
+        dto.setContentUrl("/api/v1/coding-questions/" + identifier + "/content");
 
         return dto;
     }
@@ -621,6 +630,43 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         String filePath = question.getFilePath();
         if (filePath == null || filePath.trim().isEmpty()) {
             throw new IllegalStateException("No file path found for question ID: " + id);
+        }
+        
+        // Read the file content
+        try {
+            // Remove "src/main/resources/" prefix if present, as ClassPathResource looks in classpath
+            String resourcePath = filePath;
+            if (resourcePath.startsWith("src/main/resources/")) {
+                resourcePath = resourcePath.substring("src/main/resources/".length());
+            }
+            
+            // Use ClassPathResource to read from resources folder
+            ClassPathResource resource = new ClassPathResource(resourcePath);
+            if (!resource.exists()) {
+                throw new FileNotFoundException("Question file not found: " + filePath);
+            }
+            
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            log.error("Error reading question content file: {}", filePath, e);
+            throw new Exception("Failed to read question content: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getQuestionContentByUrlSlug(String urlSlug) throws Exception {
+        log.info("Fetching content for question URL slug: {}", urlSlug);
+        
+        // First get the question to retrieve the file path
+        CodingQuestion question = codingQuestionRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with URL slug: " + urlSlug));
+        
+        String filePath = question.getFilePath();
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalStateException("No file path found for question URL slug: " + urlSlug);
         }
         
         // Read the file content

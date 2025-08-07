@@ -236,4 +236,13 @@ public interface CodingQuestionService {
      * @throws Exception if file cannot be read
      */
     String getQuestionContent(String id) throws Exception;
+
+    /**
+     * Get the markdown content of a coding question by URL slug
+     *
+     * @param urlSlug coding question URL slug
+     * @return markdown content of the question
+     * @throws Exception if file cannot be read
+     */
+    String getQuestionContentByUrlSlug(String urlSlug) throws Exception;
 }

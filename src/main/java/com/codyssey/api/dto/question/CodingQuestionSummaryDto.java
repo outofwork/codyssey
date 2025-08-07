@@ -30,6 +30,8 @@ public class CodingQuestionSummaryDto {
     
     private String uri;
     
+    private String contentUrl;
+    
     private List<LabelSummaryDto> primaryTags; // Top 3-5 most important tags
     
     private List<LabelSummaryDto> topCompanies; // Top companies that ask this question

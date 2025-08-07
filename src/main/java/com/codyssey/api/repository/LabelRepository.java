@@ -45,6 +45,15 @@ public interface LabelRepository extends JpaRepository<Label, String> {
     Optional<Label> findByUrlSlug(@Param("urlSlug") String urlSlug);
 
     /**
+     * Find label by name (case insensitive) and not deleted
+     *
+     * @param name the label name
+     * @return Optional containing the label if found
+     */
+    @Query("SELECT l FROM Label l WHERE LOWER(l.name) = LOWER(:name) AND l.deleted = false")
+    Optional<Label> findByNameIgnoreCaseAndDeletedFalse(@Param("name") String name);
+
+    /**
      * Check if URL slug exists (excluding specific ID)
      *
      * @param urlSlug the URL slug to check

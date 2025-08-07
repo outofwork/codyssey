@@ -5,6 +5,8 @@ import com.codyssey.api.util.CategoryIdGenerator;
 import com.codyssey.api.util.LabelIdGenerator;
 import com.codyssey.api.util.RoleIdGenerator;
 import com.codyssey.api.util.UserIdGenerator;
+import com.codyssey.api.util.ArticleIdGenerator;
+import com.codyssey.api.util.ArticleLabelIdGenerator;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -38,6 +40,8 @@ public class IdValidator implements ConstraintValidator<ValidId, String> {
                 QuestionIdGenerator.isValidQuestionId(id) ||
                 QuestionLabelIdGenerator.isValidQuestionLabelId(id) ||
                 QuestionCompanyIdGenerator.isValidQuestionCompanyId(id) ||
-                SourceIdGenerator.isValidSourceId(id);
+                SourceIdGenerator.isValidSourceId(id) ||
+                ArticleIdGenerator.isValidArticleId(id) ||
+                ArticleLabelIdGenerator.isValidArticleLabelId(id);
     }
 }

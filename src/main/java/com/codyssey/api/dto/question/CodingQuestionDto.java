@@ -36,6 +36,8 @@ public class CodingQuestionDto {
     
     private String uri;
     
+    private String contentUrl;
+    
     private UserDto createdByUser;
     
     private Long version;
