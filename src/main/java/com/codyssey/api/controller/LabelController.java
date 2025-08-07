@@ -176,11 +176,11 @@ public class LabelController {
     })
     @GetMapping("/category/{category}")
     public ResponseEntity<List<LabelDto>> getLabelsByCategory(
-            @Parameter(description = "Category code", required = true)
+            @Parameter(description = "Category code (case-insensitive)", required = true)
             @PathVariable String category) {
 
         log.info("GET /v1/labels/category/{} - Retrieving labels by category", category);
-        List<LabelDto> labels = labelService.getLabelsByCategory(category);
+        List<LabelDto> labels = labelService.getLabelsByCategory(category.toUpperCase());
         return ResponseEntity.ok(labels);
     }
 
@@ -191,11 +191,11 @@ public class LabelController {
     })
     @GetMapping("/category/{category}/active")
     public ResponseEntity<List<LabelDto>> getActiveLabelsByCategory(
-            @Parameter(description = "Category code", required = true)
+            @Parameter(description = "Category code (case-insensitive)", required = true)
             @PathVariable String category) {
 
         log.info("GET /v1/labels/category/{}/active - Retrieving active labels by category", category);
-        List<LabelDto> labels = labelService.getActiveLabelsByCategory(category);
+        List<LabelDto> labels = labelService.getActiveLabelsByCategory(category.toUpperCase());
         return ResponseEntity.ok(labels);
     }
 
@@ -206,11 +206,11 @@ public class LabelController {
     })
     @GetMapping("/category/{category}/roots")
     public ResponseEntity<List<LabelDto>> getRootLabelsByCategory(
-            @Parameter(description = "Category code", required = true)
+            @Parameter(description = "Category code (case-insensitive)", required = true)
             @PathVariable String category) {
 
         log.info("GET /v1/labels/category/{}/roots - Retrieving root labels by category", category);
-        List<LabelDto> labels = labelService.getRootLabelsByCategory(category);
+        List<LabelDto> labels = labelService.getRootLabelsByCategory(category.toUpperCase());
         return ResponseEntity.ok(labels);
     }
 

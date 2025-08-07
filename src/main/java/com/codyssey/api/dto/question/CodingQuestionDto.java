@@ -24,10 +24,6 @@ public class CodingQuestionDto {
     
     private String shortDescription;
     
-    private String filePath;
-    
-    private String contentUrl;
-    
     private LabelSummaryDto difficultyLabel;
     
     private SourceSummaryDto source;
@@ -38,15 +34,9 @@ public class CodingQuestionDto {
     
     private String status;
     
-    private String urlSlug;
-    
     private String uri;
     
     private UserDto createdByUser;
-    
-    private LocalDateTime createdAt;
-    
-    private LocalDateTime updatedAt;
     
     private Long version;
     

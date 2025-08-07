@@ -453,10 +453,7 @@ public class LabelServiceImpl implements LabelService {
         dto.setName(label.getName());
         dto.setDescription(label.getDescription());
         dto.setActive(label.getActive());
-        dto.setUrlSlug(label.getUrlSlug());
         dto.setUri("/api/v1/labels/" + label.getUrlSlug());
-        dto.setCreatedAt(label.getCreatedAt());
-        dto.setUpdatedAt(label.getUpdatedAt());
 
         // Convert category
         if (label.getCategory() != null) {
@@ -466,10 +463,8 @@ public class LabelServiceImpl implements LabelService {
         // Convert parent (without children to avoid circular reference)
         if (label.getParent() != null) {
             LabelSummaryDto parentDto = new LabelSummaryDto();
-            parentDto.setId(label.getParent().getId());
             parentDto.setName(label.getParent().getName());
-            parentDto.setUrlSlug(label.getParent().getUrlSlug());
-            parentDto.setUri("/api/v1/labels/" + label.getParent().getUrlSlug());
+            parentDto.setQuestionUri("/api/v1/coding-questions/label/" + label.getParent().getUrlSlug());
             dto.setParent(parentDto);
         }
 
@@ -479,10 +474,8 @@ public class LabelServiceImpl implements LabelService {
                     .filter(child -> !child.getDeleted())
                     .map(child -> {
                         LabelSummaryDto childDto = new LabelSummaryDto();
-                        childDto.setId(child.getId());
                         childDto.setName(child.getName());
-                        childDto.setUrlSlug(child.getUrlSlug());
-                        childDto.setUri("/api/v1/labels/" + child.getUrlSlug());
+                        childDto.setQuestionUri("/api/v1/coding-questions/label/" + child.getUrlSlug());
                         return childDto;
                     })
                     .collect(Collectors.toList());
@@ -529,8 +522,7 @@ public class LabelServiceImpl implements LabelService {
         dto.setCode(category.getCode());
         dto.setDescription(category.getDescription());
         dto.setActive(category.getActive());
-        dto.setCreatedAt(category.getCreatedAt());
-        dto.setUpdatedAt(category.getUpdatedAt());
+        dto.setUri("/api/v1/labelcategories/" + category.getUrlSlug());
         return dto;
     }
 
@@ -539,9 +531,8 @@ public class LabelServiceImpl implements LabelService {
      */
     private LabelCategorySummaryDto convertCategoryToSummaryDto(LabelCategory category) {
         LabelCategorySummaryDto dto = new LabelCategorySummaryDto();
-        dto.setId(category.getId());
         dto.setName(category.getName());
-        dto.setCode(category.getCode());
+        dto.setUri("/api/v1/labelcategories/" + category.getUrlSlug());
         return dto;
     }
 

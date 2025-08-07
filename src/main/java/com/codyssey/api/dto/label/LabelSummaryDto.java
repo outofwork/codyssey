@@ -15,10 +15,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LabelSummaryDto {
 
-    private String id;
     private String name;
     private String description;
     private String categoryCode;
-    private String urlSlug;
-    private String uri;
+    private String questionUri;
 }

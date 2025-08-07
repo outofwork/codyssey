@@ -12,17 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SourceSummaryDto {
     
-    private String id;
-    
-    private String code;
-    
     private String name;
     
-    private String baseUrl;
-    
-    private String colorCode;
-    
-    private String urlSlug;
-    
-    private String uri;
+    private String questionUri;
 }

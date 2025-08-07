@@ -127,6 +127,38 @@ public interface CodingQuestionService {
     List<CodingQuestionSummaryDto> getQuestionsByCompany(String companyLabelId);
 
     /**
+     * Get coding questions by difficulty label URL slug
+     *
+     * @param difficultyLabelSlug difficulty label URL slug
+     * @return list of questions with the specified difficulty
+     */
+    List<CodingQuestionSummaryDto> getQuestionsByDifficultySlug(String difficultyLabelSlug);
+
+    /**
+     * Get coding questions by label/tag URL slug
+     *
+     * @param labelSlug label URL slug
+     * @return list of questions tagged with the specified label
+     */
+    List<CodingQuestionSummaryDto> getQuestionsByLabelSlug(String labelSlug);
+
+    /**
+     * Get coding questions by company URL slug
+     *
+     * @param companyLabelSlug company label URL slug
+     * @return list of questions asked by the specified company
+     */
+    List<CodingQuestionSummaryDto> getQuestionsByCompanySlug(String companyLabelSlug);
+
+    /**
+     * Get coding questions by source URL slug
+     *
+     * @param sourceSlug source URL slug
+     * @return list of questions from the specified source
+     */
+    List<CodingQuestionSummaryDto> getQuestionsBySourceSlug(String sourceSlug);
+
+    /**
      * Advanced search with multiple filters
      *
      * @param sourceIds list of source IDs to filter by

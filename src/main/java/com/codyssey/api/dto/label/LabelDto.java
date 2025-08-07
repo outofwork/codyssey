@@ -21,11 +21,8 @@ public class LabelDto {
     private String name;
     private String description;
     private Boolean active;
-    private String urlSlug;
     private String uri;
     private LabelCategorySummaryDto category;
     private LabelSummaryDto parent;
     private List<LabelSummaryDto> children;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

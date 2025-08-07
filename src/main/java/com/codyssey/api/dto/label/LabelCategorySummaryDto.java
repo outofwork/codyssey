@@ -15,7 +15,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LabelCategorySummaryDto {
 
-    private String id;
     private String name;
-    private String code;
+    private String uri;
 }

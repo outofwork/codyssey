@@ -267,13 +267,8 @@ public class SourceServiceImpl implements SourceService {
 
     private SourceSummaryDto mapToSummaryDto(Source source) {
         SourceSummaryDto dto = new SourceSummaryDto();
-        dto.setId(source.getId());
-        dto.setCode(source.getCode());
         dto.setName(source.getName());
-        dto.setBaseUrl(source.getBaseUrl());
-        dto.setColorCode(source.getColorCode());
-        dto.setUrlSlug(source.getUrlSlug());
-        dto.setUri("/api/v1/sources/" + source.getUrlSlug());
+        dto.setQuestionUri("/api/v1/coding-questions/source/" + source.getUrlSlug());
         return dto;
     }
 

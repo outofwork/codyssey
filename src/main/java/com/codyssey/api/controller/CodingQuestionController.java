@@ -163,49 +163,76 @@ public class CodingQuestionController {
      * @param sourceId source ID
      * @return list of questions from the source
      */
-    @GetMapping("/source/{sourceId}")
-    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsBySource(@PathVariable @ValidId String sourceId) {
-        log.info("GET /v1/coding-questions/source/{} - Retrieving questions by source", sourceId);
-        List<CodingQuestionSummaryDto> questions = codingQuestionService.getQuestionsBySource(sourceId);
+    @GetMapping("/source/{identifier}")
+    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsBySource(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/coding-questions/source/{} - Retrieving questions by source", identifier);
+        List<CodingQuestionSummaryDto> questions;
+        
+        if (identifier.startsWith("SRC-")) {
+            questions = codingQuestionService.getQuestionsBySource(identifier);
+        } else {
+            questions = codingQuestionService.getQuestionsBySourceSlug(identifier);
+        }
         return ResponseEntity.ok(questions);
     }
 
     /**
-     * Get coding questions by difficulty
+     * Get coding questions by difficulty (accepts both URL slug and ID)
      * 
-     * @param difficultyId difficulty label ID
+     * @param identifier difficulty label URL slug or ID
      * @return list of questions with the specified difficulty
      */
-    @GetMapping("/difficulty/{difficultyId}")
-    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsByDifficulty(@PathVariable @ValidId String difficultyId) {
-        log.info("GET /v1/coding-questions/difficulty/{} - Retrieving questions by difficulty", difficultyId);
-        List<CodingQuestionSummaryDto> questions = codingQuestionService.getQuestionsByDifficulty(difficultyId);
+    @GetMapping("/difficulty/{identifier}")
+    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsByDifficulty(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/coding-questions/difficulty/{} - Retrieving questions by difficulty", identifier);
+        List<CodingQuestionSummaryDto> questions;
+        
+        if (identifier.startsWith("LBL-")) {
+            questions = codingQuestionService.getQuestionsByDifficulty(identifier);
+        } else {
+            questions = codingQuestionService.getQuestionsByDifficultySlug(identifier);
+        }
+        
         return ResponseEntity.ok(questions);
     }
 
     /**
-     * Get coding questions by label/tag
+     * Get coding questions by label/tag (accepts both URL slug and ID)
      * 
-     * @param labelId label ID
+     * @param identifier label URL slug or ID
      * @return list of questions tagged with the specified label
      */
-    @GetMapping("/label/{labelId}")
-    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsByLabel(@PathVariable @ValidId String labelId) {
-        log.info("GET /v1/coding-questions/label/{} - Retrieving questions by label", labelId);
-        List<CodingQuestionSummaryDto> questions = codingQuestionService.getQuestionsByLabel(labelId);
+    @GetMapping("/label/{identifier}")
+    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsByLabel(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/coding-questions/label/{} - Retrieving questions by label", identifier);
+        List<CodingQuestionSummaryDto> questions;
+        
+        if (identifier.startsWith("LBL-")) {
+            questions = codingQuestionService.getQuestionsByLabel(identifier);
+        } else {
+            questions = codingQuestionService.getQuestionsByLabelSlug(identifier);
+        }
+        
         return ResponseEntity.ok(questions);
     }
 
     /**
-     * Get coding questions by company
+     * Get coding questions by company (accepts both URL slug and ID)
      * 
-     * @param companyId company label ID
+     * @param identifier company label URL slug or ID
      * @return list of questions asked by the specified company
      */
-    @GetMapping("/company/{companyId}")
-    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsByCompany(@PathVariable @ValidId String companyId) {
-        log.info("GET /v1/coding-questions/company/{} - Retrieving questions by company", companyId);
-        List<CodingQuestionSummaryDto> questions = codingQuestionService.getQuestionsByCompany(companyId);
+    @GetMapping("/company/{identifier}")
+    public ResponseEntity<List<CodingQuestionSummaryDto>> getQuestionsByCompany(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/coding-questions/company/{} - Retrieving questions by company", identifier);
+        List<CodingQuestionSummaryDto> questions;
+        
+        if (identifier.startsWith("LBL-")) {
+            questions = codingQuestionService.getQuestionsByCompany(identifier);
+        } else {
+            questions = codingQuestionService.getQuestionsByCompanySlug(identifier);
+        }
+        
         return ResponseEntity.ok(questions);
     }
 

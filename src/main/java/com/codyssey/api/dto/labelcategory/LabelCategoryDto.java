@@ -33,11 +33,5 @@ public class LabelCategoryDto {
 
     private Boolean active;
 
-    private String urlSlug;
-
     private String uri;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
 }

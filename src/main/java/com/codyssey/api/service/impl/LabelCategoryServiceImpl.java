@@ -212,10 +212,7 @@ public class LabelCategoryServiceImpl implements LabelCategoryService {
         dto.setCode(category.getCode());
         dto.setDescription(category.getDescription());
         dto.setActive(category.getActive());
-        dto.setUrlSlug(category.getUrlSlug());
-        dto.setUri("/api/v1/label-categories/" + category.getUrlSlug());
-        dto.setCreatedAt(category.getCreatedAt());
-        dto.setUpdatedAt(category.getUpdatedAt());
+        dto.setUri("/api/v1/labelcategories/" + category.getUrlSlug());
         return dto;
     }
 

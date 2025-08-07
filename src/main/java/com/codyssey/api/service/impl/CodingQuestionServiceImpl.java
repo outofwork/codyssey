@@ -331,6 +331,58 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByDifficultySlug(String difficultyLabelSlug) {
+        log.info("Retrieving questions by difficulty slug: {}", difficultyLabelSlug);
+        Label difficultyLabel = labelRepository.findByUrlSlug(difficultyLabelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Difficulty label not found with URL slug: " + difficultyLabelSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByDifficultyLabel(difficultyLabel);
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByLabelSlug(String labelSlug) {
+        log.info("Retrieving questions by label slug: {}", labelSlug);
+        Label label = labelRepository.findByUrlSlug(labelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with URL slug: " + labelSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByLabelId(label.getId());
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByCompanySlug(String companyLabelSlug) {
+        log.info("Retrieving questions by company slug: {}", companyLabelSlug);
+        Label companyLabel = labelRepository.findByUrlSlug(companyLabelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Company label not found with URL slug: " + companyLabelSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByCompanyLabelId(companyLabel.getId());
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsBySourceSlug(String sourceSlug) {
+        log.info("Retrieving questions by source slug: {}", sourceSlug);
+        Source source = sourceRepository.findByUrlSlug(sourceSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Source not found with URL slug: " + sourceSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findBySourceId(source.getId());
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<CodingQuestionSummaryDto> searchWithFilters(List<String> sourceIds,
                                                             List<String> difficultyIds,
                                                             List<String> labelIds,
@@ -482,33 +534,25 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setId(question.getId());
         dto.setTitle(question.getTitle());
         dto.setShortDescription(question.getShortDescription());
-        dto.setFilePath(question.getFilePath());
-        dto.setContentUrl("/api/v1/coding-questions/" + question.getId() + "/content");
         
         if (question.getDifficultyLabel() != null) {
             LabelSummaryDto difficultyDto = new LabelSummaryDto();
-            difficultyDto.setId(question.getDifficultyLabel().getId());
             difficultyDto.setName(question.getDifficultyLabel().getName());
+            difficultyDto.setQuestionUri("/api/v1/coding-questions/difficulty/" + question.getDifficultyLabel().getUrlSlug());
             dto.setDifficultyLabel(difficultyDto);
         }
         
         if (question.getSource() != null) {
             SourceSummaryDto sourceDto = new SourceSummaryDto();
-            sourceDto.setId(question.getSource().getId());
-            sourceDto.setCode(question.getSource().getCode());
             sourceDto.setName(question.getSource().getName());
-            sourceDto.setBaseUrl(question.getSource().getBaseUrl());
-            sourceDto.setColorCode(question.getSource().getColorCode());
+            sourceDto.setQuestionUri("/api/v1/coding-questions/source/" + question.getSource().getUrlSlug());
             dto.setSource(sourceDto);
         }
         
         dto.setPlatformQuestionId(question.getPlatformQuestionId());
         dto.setOriginalUrl(question.getOriginalUrl());
         dto.setStatus(question.getStatus().toString());
-        dto.setUrlSlug(question.getUrlSlug());
         dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
-        dto.setCreatedAt(question.getCreatedAt());
-        dto.setUpdatedAt(question.getUpdatedAt());
         dto.setVersion(question.getVersion());
 
         // Populate associated labels/tags
@@ -517,9 +561,9 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
                     .filter(ql -> !ql.getDeleted())
                     .map(ql -> {
                         LabelSummaryDto tagDto = new LabelSummaryDto();
-                        tagDto.setId(ql.getLabel().getId());
                         tagDto.setName(ql.getLabel().getName());
                         tagDto.setCategoryCode(ql.getLabel().getCategory().getCode());
+                        tagDto.setQuestionUri("/api/v1/coding-questions/label/" + ql.getLabel().getUrlSlug());
                         return tagDto;
                     })
                     .toList();
@@ -532,9 +576,9 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
                     .filter(qc -> !qc.getDeleted())
                     .map(qc -> {
                         LabelSummaryDto companyDto = new LabelSummaryDto();
-                        companyDto.setId(qc.getCompanyLabel().getId());
                         companyDto.setName(qc.getCompanyLabel().getName());
                         companyDto.setCategoryCode(qc.getCompanyLabel().getCategory().getCode());
+                        companyDto.setQuestionUri("/api/v1/coding-questions/company/" + qc.getCompanyLabel().getUrlSlug());
                         return companyDto;
                     })
                     .toList();
@@ -552,8 +596,8 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         
         if (question.getDifficultyLabel() != null) {
             LabelSummaryDto difficultyDto = new LabelSummaryDto();
-            difficultyDto.setId(question.getDifficultyLabel().getId());
             difficultyDto.setName(question.getDifficultyLabel().getName());
+            difficultyDto.setQuestionUri("/api/v1/coding-questions/difficulty/" + question.getDifficultyLabel().getUrlSlug());
             dto.setDifficultyLabel(difficultyDto);
         }
         
@@ -561,9 +605,7 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
             dto.setSourceName(question.getSource().getName());
         }
         dto.setStatus(question.getStatus().toString());
-        dto.setUrlSlug(question.getUrlSlug());
         dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
-        dto.setCreatedAt(question.getCreatedAt());
 
         return dto;
     }
