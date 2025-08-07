@@ -36,6 +36,42 @@ public interface LabelRepository extends JpaRepository<Label, String> {
     Optional<Label> findByIdAndNotDeleted(@Param("id") String id);
 
     /**
+     * Find label by URL slug
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the label if found
+     */
+    @Query("SELECT l FROM Label l WHERE l.urlSlug = :urlSlug AND l.deleted = false")
+    Optional<Label> findByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Check if URL slug exists (excluding specific ID)
+     *
+     * @param urlSlug the URL slug to check
+     * @param excludeId the ID to exclude from the check
+     * @return true if URL slug exists for a different entity
+     */
+    @Query("SELECT COUNT(l) > 0 FROM Label l WHERE l.urlSlug = :urlSlug AND l.id != :excludeId AND l.deleted = false")
+    boolean existsByUrlSlugAndIdNot(@Param("urlSlug") String urlSlug, @Param("excludeId") String excludeId);
+
+    /**
+     * Check if URL slug exists
+     *
+     * @param urlSlug the URL slug to check
+     * @return true if URL slug exists
+     */
+    @Query("SELECT COUNT(l) > 0 FROM Label l WHERE l.urlSlug = :urlSlug AND l.deleted = false")
+    boolean existsByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Find all labels that are not soft deleted with category eagerly fetched
+     *
+     * @return List of all non-deleted labels with categories
+     */
+    @Query("SELECT l FROM Label l LEFT JOIN FETCH l.category WHERE l.deleted = false")
+    List<Label> findByDeletedFalseWithCategory();
+
+    /**
      * Find all active labels that are not soft deleted
      *
      * @return List of active, non-deleted labels

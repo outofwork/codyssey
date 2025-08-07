@@ -28,6 +28,10 @@ public class SourceDto {
     
     private String colorCode;
     
+    private String urlSlug;
+    
+    private String uri;
+    
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;

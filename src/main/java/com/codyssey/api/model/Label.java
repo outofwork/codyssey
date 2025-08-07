@@ -118,4 +118,11 @@ public class Label extends BaseEntity {
     public boolean hasChildren() {
         return children != null && !children.isEmpty();
     }
+
+    /**
+     * SEO-friendly URL slug for this label
+     */
+    @Size(max = 250)
+    @Column(name = "url_slug", unique = true)
+    private String urlSlug;
 }

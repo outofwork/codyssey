@@ -9,6 +9,7 @@ import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.model.Source;
 import com.codyssey.api.repository.SourceRepository;
 import com.codyssey.api.service.SourceService;
+import com.codyssey.api.util.UrlSlugGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,11 @@ public class SourceServiceImpl implements SourceService {
         source.setDescription(createDto.getDescription());
         source.setIsActive(createDto.getIsActive() != null ? createDto.getIsActive() : true);
         source.setColorCode(createDto.getColorCode());
+        
+        // Generate unique URL slug
+        String baseSlug = UrlSlugGenerator.generateSourceSlug(createDto.getName());
+        String uniqueSlug = generateUniqueSlug(baseSlug);
+        source.setUrlSlug(uniqueSlug);
 
         Source savedSource = sourceRepository.save(source);
         log.info("Successfully created source with ID: {}", savedSource.getId());
@@ -98,6 +104,14 @@ public class SourceServiceImpl implements SourceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<SourceDto> getSourceByUrlSlug(String urlSlug) {
+        log.info("Retrieving source by URL slug: {}", urlSlug);
+        return sourceRepository.findByUrlSlug(urlSlug)
+                .map(this::mapToDto);
+    }
+
+    @Override
     public SourceDto updateSource(String id, SourceUpdateDto updateDto) {
         log.info("Updating source with ID: {}", id);
         
@@ -142,6 +156,57 @@ public class SourceServiceImpl implements SourceService {
         source.setDeleted(true);
         sourceRepository.save(source);
         log.info("Successfully deleted source with ID: {}", id);
+    }
+
+    @Override
+    public SourceDto updateSourceByUrlSlug(String urlSlug, SourceUpdateDto updateDto) {
+        log.info("Updating source with URL slug: {}", urlSlug);
+        
+        Source source = sourceRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Source not found with URL slug: " + urlSlug));
+
+        if (updateDto.getName() != null) {
+            source.setName(updateDto.getName());
+            // Update URL slug if name changes
+            String baseSlug = UrlSlugGenerator.generateSourceSlug(updateDto.getName());
+            String uniqueSlug = generateUniqueSlug(baseSlug, source.getId());
+            source.setUrlSlug(uniqueSlug);
+        }
+        if (updateDto.getBaseUrl() != null) {
+            source.setBaseUrl(updateDto.getBaseUrl());
+        }
+        if (updateDto.getDescription() != null) {
+            source.setDescription(updateDto.getDescription());
+        }
+        if (updateDto.getIsActive() != null) {
+            source.setIsActive(updateDto.getIsActive());
+        }
+        if (updateDto.getColorCode() != null) {
+            source.setColorCode(updateDto.getColorCode());
+        }
+
+        Source updatedSource = sourceRepository.save(source);
+        log.info("Successfully updated source with URL slug: {}", urlSlug);
+        
+        return mapToDto(updatedSource);
+    }
+
+    @Override
+    public void deleteSourceByUrlSlug(String urlSlug) {
+        log.info("Deleting source with URL slug: {}", urlSlug);
+        
+        Source source = sourceRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Source not found with URL slug: " + urlSlug));
+
+        // Check if source has questions
+        Long questionsCount = sourceRepository.countQuestionsBySourceId(source.getId());
+        if (questionsCount > 0) {
+            throw new IllegalStateException("Cannot delete source with " + questionsCount + " associated questions");
+        }
+
+        source.setDeleted(true);
+        sourceRepository.save(source);
+        log.info("Successfully deleted source with URL slug: {}", urlSlug);
     }
 
     @Override
@@ -191,6 +256,8 @@ public class SourceServiceImpl implements SourceService {
         dto.setDescription(source.getDescription());
         dto.setIsActive(source.getIsActive());
         dto.setColorCode(source.getColorCode());
+        dto.setUrlSlug(source.getUrlSlug());
+        dto.setUri("/api/v1/sources/" + source.getUrlSlug());
         dto.setCreatedAt(source.getCreatedAt());
         dto.setUpdatedAt(source.getUpdatedAt());
         dto.setVersion(source.getVersion());
@@ -199,12 +266,38 @@ public class SourceServiceImpl implements SourceService {
     }
 
     private SourceSummaryDto mapToSummaryDto(Source source) {
-        return new SourceSummaryDto(
-                source.getId(),
-                source.getCode(),
-                source.getName(),
-                source.getBaseUrl(),
-                source.getColorCode()
-        );
+        SourceSummaryDto dto = new SourceSummaryDto();
+        dto.setId(source.getId());
+        dto.setCode(source.getCode());
+        dto.setName(source.getName());
+        dto.setBaseUrl(source.getBaseUrl());
+        dto.setColorCode(source.getColorCode());
+        dto.setUrlSlug(source.getUrlSlug());
+        dto.setUri("/api/v1/sources/" + source.getUrlSlug());
+        return dto;
+    }
+
+    /**
+     * Generate unique URL slug for new entities
+     */
+    private String generateUniqueSlug(String baseSlug) {
+        return generateUniqueSlug(baseSlug, null);
+    }
+
+    /**
+     * Generate unique URL slug, excluding a specific entity ID
+     */
+    private String generateUniqueSlug(String baseSlug, String excludeId) {
+        String slug = baseSlug;
+        int counter = 1;
+        
+        while (excludeId != null ? 
+               sourceRepository.existsByUrlSlugAndIdNot(slug, excludeId) : 
+               sourceRepository.existsByUrlSlug(slug)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+        
+        return slug;
     }
 }

@@ -52,6 +52,34 @@ public interface SourceRepository extends JpaRepository<Source, String> {
     Optional<Source> findByCodeIgnoreCase(@Param("code") String code);
 
     /**
+     * Find source by URL slug
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the source if found
+     */
+    @Query("SELECT s FROM Source s WHERE s.urlSlug = :urlSlug AND s.deleted = false")
+    Optional<Source> findByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Check if URL slug exists (excluding specific ID)
+     *
+     * @param urlSlug the URL slug to check
+     * @param excludeId the ID to exclude from the check
+     * @return true if URL slug exists for a different entity
+     */
+    @Query("SELECT COUNT(s) > 0 FROM Source s WHERE s.urlSlug = :urlSlug AND s.id != :excludeId AND s.deleted = false")
+    boolean existsByUrlSlugAndIdNot(@Param("urlSlug") String urlSlug, @Param("excludeId") String excludeId);
+
+    /**
+     * Check if URL slug exists
+     *
+     * @param urlSlug the URL slug to check
+     * @return true if URL slug exists
+     */
+    @Query("SELECT COUNT(s) > 0 FROM Source s WHERE s.urlSlug = :urlSlug AND s.deleted = false")
+    boolean existsByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
      * Find sources by name containing search term (case insensitive)
      *
      * @param searchTerm the search term

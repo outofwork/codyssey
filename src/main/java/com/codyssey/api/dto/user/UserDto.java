@@ -49,6 +49,8 @@ public class UserDto {
 
     private Boolean enabled;
 
+    private String urlSlug;
+
     private Set<String> roles;
 
     private LocalDateTime createdAt;

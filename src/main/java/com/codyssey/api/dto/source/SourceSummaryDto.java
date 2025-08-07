@@ -21,4 +21,8 @@ public class SourceSummaryDto {
     private String baseUrl;
     
     private String colorCode;
+    
+    private String urlSlug;
+    
+    private String uri;
 }

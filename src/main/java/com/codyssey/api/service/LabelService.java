@@ -51,6 +51,14 @@ public interface LabelService {
     Optional<LabelDto> getLabelById(String id);
 
     /**
+     * Get label by URL slug
+     *
+     * @param urlSlug URL slug
+     * @return label DTO if found
+     */
+    Optional<LabelDto> getLabelByUrlSlug(String urlSlug);
+
+    /**
      * Update label
      *
      * @param id        label ID
@@ -60,11 +68,27 @@ public interface LabelService {
     LabelDto updateLabel(String id, LabelUpdateDto updateDto);
 
     /**
+     * Update label by URL slug
+     *
+     * @param urlSlug   label URL slug
+     * @param updateDto updated label data
+     * @return updated label DTO
+     */
+    LabelDto updateLabelByUrlSlug(String urlSlug, LabelUpdateDto updateDto);
+
+    /**
      * Soft delete label
      *
      * @param id label ID
      */
     void deleteLabel(String id);
+
+    /**
+     * Soft delete label by URL slug
+     *
+     * @param urlSlug label URL slug
+     */
+    void deleteLabelByUrlSlug(String urlSlug);
 
     /**
      * Get labels by category code

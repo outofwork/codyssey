@@ -38,6 +38,14 @@ public interface CodingQuestionService {
     Optional<CodingQuestionDto> getQuestionById(String id);
 
     /**
+     * Get coding question by URL slug
+     *
+     * @param urlSlug coding question URL slug
+     * @return coding question DTO if found
+     */
+    Optional<CodingQuestionDto> getQuestionByUrlSlug(String urlSlug);
+
+    /**
      * Update coding question
      *
      * @param id coding question ID
@@ -47,11 +55,27 @@ public interface CodingQuestionService {
     CodingQuestionDto updateQuestion(String id, CodingQuestionUpdateDto updateDto);
 
     /**
+     * Update coding question by URL slug
+     *
+     * @param urlSlug coding question URL slug
+     * @param updateDto updated coding question data
+     * @return updated coding question DTO
+     */
+    CodingQuestionDto updateQuestionByUrlSlug(String urlSlug, CodingQuestionUpdateDto updateDto);
+
+    /**
      * Soft delete coding question
      *
      * @param id coding question ID
      */
     void deleteQuestion(String id);
+
+    /**
+     * Soft delete coding question by URL slug
+     *
+     * @param urlSlug coding question URL slug
+     */
+    void deleteQuestionByUrlSlug(String urlSlug);
 
     /**
      * Get coding questions with pagination

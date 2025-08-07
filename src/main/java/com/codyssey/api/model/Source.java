@@ -79,6 +79,13 @@ public class Source extends BaseEntity {
     private String colorCode;
 
     /**
+     * SEO-friendly URL slug for this source
+     */
+    @Size(max = 200)
+    @Column(name = "url_slug", unique = true)
+    private String urlSlug;
+
+    /**
      * Constructor with required fields
      */
     public Source(String code, String name, String baseUrl) {

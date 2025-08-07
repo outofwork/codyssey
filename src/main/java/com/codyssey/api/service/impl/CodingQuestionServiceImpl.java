@@ -8,6 +8,7 @@ import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.model.*;
 import com.codyssey.api.repository.*;
 import com.codyssey.api.service.CodingQuestionService;
+import com.codyssey.api.util.UrlSlugGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -94,6 +95,12 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         question.setOriginalUrl(createDto.getOriginalUrl());
         question.setStatus(CodingQuestion.QuestionStatus.valueOf(createDto.getStatus()));
         question.setCreatedByUser(createdByUser);
+        
+        // Generate unique URL slug
+        String sourceCode = source != null ? source.getCode() : "";
+        String baseSlug = UrlSlugGenerator.generateQuestionSlug(createDto.getTitle(), sourceCode);
+        String uniqueSlug = generateUniqueSlug(baseSlug);
+        question.setUrlSlug(uniqueSlug);
 
         CodingQuestion savedQuestion = codingQuestionRepository.save(question);
         log.info("Successfully created coding question with ID: {}", savedQuestion.getId());
@@ -127,6 +134,30 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         // Load labels and companies separately to avoid MultipleBagFetchException
         List<QuestionLabel> questionLabels = questionLabelRepository.findByQuestionId(id);
         List<QuestionCompany> questionCompanies = questionCompanyRepository.findByQuestionId(id);
+        
+        // Manually set the loaded collections
+        question.setQuestionLabels(questionLabels);
+        question.setQuestionCompanies(questionCompanies);
+        
+        return Optional.of(convertToDto(question));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CodingQuestionDto> getQuestionByUrlSlug(String urlSlug) {
+        log.info("Retrieving coding question by URL slug: {}", urlSlug);
+        
+        // First get the basic question
+        Optional<CodingQuestion> questionOpt = codingQuestionRepository.findByUrlSlug(urlSlug);
+        if (questionOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        CodingQuestion question = questionOpt.get();
+        
+        // Load labels and companies separately to avoid MultipleBagFetchException
+        List<QuestionLabel> questionLabels = questionLabelRepository.findByQuestionId(question.getId());
+        List<QuestionCompany> questionCompanies = questionCompanyRepository.findByQuestionId(question.getId());
         
         // Manually set the loaded collections
         question.setQuestionLabels(questionLabels);
@@ -187,6 +218,56 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         question.setDeleted(true);
         codingQuestionRepository.save(question);
         log.info("Successfully deleted coding question with ID: {}", id);
+    }
+
+    @Override
+    public CodingQuestionDto updateQuestionByUrlSlug(String urlSlug, CodingQuestionUpdateDto updateDto) {
+        log.info("Updating coding question with URL slug: {}", urlSlug);
+
+        CodingQuestion question = codingQuestionRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with URL slug: " + urlSlug));
+
+        // Update fields if provided
+        if (updateDto.getTitle() != null) {
+            question.setTitle(updateDto.getTitle());
+            
+            // Update URL slug if title changes
+            String sourceCode = question.getSource() != null ? question.getSource().getCode() : "";
+            String baseSlug = UrlSlugGenerator.generateQuestionSlug(updateDto.getTitle(), sourceCode);
+            String uniqueSlug = generateUniqueSlug(baseSlug, question.getId());
+            question.setUrlSlug(uniqueSlug);
+        }
+        if (updateDto.getShortDescription() != null) {
+            question.setShortDescription(updateDto.getShortDescription());
+        }
+        if (updateDto.getFilePath() != null) {
+            question.setFilePath(updateDto.getFilePath());
+        }
+        if (updateDto.getPlatformQuestionId() != null) {
+            question.setPlatformQuestionId(updateDto.getPlatformQuestionId());
+        }
+        if (updateDto.getOriginalUrl() != null) {
+            question.setOriginalUrl(updateDto.getOriginalUrl());
+        }
+        if (updateDto.getStatus() != null) {
+            question.setStatus(CodingQuestion.QuestionStatus.valueOf(updateDto.getStatus()));
+        }
+
+        CodingQuestion updatedQuestion = codingQuestionRepository.save(question);
+        log.info("Successfully updated coding question with URL slug: {}", urlSlug);
+
+        return convertToDto(updatedQuestion);
+    }
+
+    @Override
+    public void deleteQuestionByUrlSlug(String urlSlug) {
+        log.info("Deleting coding question with URL slug: {}", urlSlug);
+        CodingQuestion question = codingQuestionRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with URL slug: " + urlSlug));
+        
+        question.setDeleted(true);
+        codingQuestionRepository.save(question);
+        log.info("Successfully deleted coding question with URL slug: {}", urlSlug);
     }
 
     @Override
@@ -424,6 +505,8 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setPlatformQuestionId(question.getPlatformQuestionId());
         dto.setOriginalUrl(question.getOriginalUrl());
         dto.setStatus(question.getStatus().toString());
+        dto.setUrlSlug(question.getUrlSlug());
+        dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
         dto.setCreatedAt(question.getCreatedAt());
         dto.setUpdatedAt(question.getUpdatedAt());
         dto.setVersion(question.getVersion());
@@ -478,6 +561,8 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
             dto.setSourceName(question.getSource().getName());
         }
         dto.setStatus(question.getStatus().toString());
+        dto.setUrlSlug(question.getUrlSlug());
+        dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
         dto.setCreatedAt(question.getCreatedAt());
 
         return dto;
@@ -517,5 +602,29 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
             log.error("Error reading question content file: {}", filePath, e);
             throw new Exception("Failed to read question content: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Generate unique URL slug for new entities
+     */
+    private String generateUniqueSlug(String baseSlug) {
+        return generateUniqueSlug(baseSlug, null);
+    }
+
+    /**
+     * Generate unique URL slug, excluding a specific entity ID
+     */
+    private String generateUniqueSlug(String baseSlug, String excludeId) {
+        String slug = baseSlug;
+        int counter = 1;
+        
+        while (excludeId != null ? 
+               codingQuestionRepository.existsByUrlSlugAndIdNot(slug, excludeId) : 
+               codingQuestionRepository.existsByUrlSlug(slug)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+        
+        return slug;
     }
 }

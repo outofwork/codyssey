@@ -19,4 +19,6 @@ public class LabelSummaryDto {
     private String name;
     private String description;
     private String categoryCode;
+    private String urlSlug;
+    private String uri;
 }

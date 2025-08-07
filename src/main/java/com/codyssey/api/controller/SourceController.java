@@ -18,6 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST Controller for Source operations
@@ -84,21 +85,7 @@ public class SourceController {
         return ResponseEntity.ok(sources);
     }
 
-    @Operation(summary = "Get a specific source by ID", description = "Retrieves a specific source by its ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Source found"),
-            @ApiResponse(responseCode = "404", description = "Source not found")
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<SourceDto> getSourceById(
-            @Parameter(description = "Source ID (SRC-xxxxxx)", required = true)
-            @PathVariable @ValidId String id) {
 
-        log.info("GET /v1/sources/{} - Retrieving source by ID", id);
-        return sourceService.getSourceById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
 
     @Operation(summary = "Get source by code", description = "Retrieves a source by its code")
     @ApiResponses(value = {
@@ -116,37 +103,80 @@ public class SourceController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Update an existing source", description = "Updates an existing source's properties")
+    @Operation(summary = "Get source by URL slug", description = "Retrieves a source by its SEO-friendly URL slug")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Source found"),
+            @ApiResponse(responseCode = "404", description = "Source not found")
+    })
+    @GetMapping("/{urlSlug}")
+    public ResponseEntity<SourceDto> getSourceByUrlSlug(
+            @Parameter(description = "Source URL slug (e.g., leetcode)", required = true)
+            @PathVariable @NotBlank String urlSlug) {
+
+        log.info("GET /v1/sources/{} - Retrieving source by URL slug", urlSlug);
+        
+        // First try to find by URL slug
+        Optional<SourceDto> sourceBySlug = sourceService.getSourceByUrlSlug(urlSlug);
+        if (sourceBySlug.isPresent()) {
+            return ResponseEntity.ok(sourceBySlug.get());
+        }
+        
+        // If not found and it looks like an ID (starts with SRC-), try ID lookup for backward compatibility
+        if (urlSlug.startsWith("SRC-")) {
+            return sourceService.getSourceById(urlSlug)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        
+        return ResponseEntity.notFound().build();
+    }
+
+
+
+    @Operation(summary = "Update source", description = "Updates an existing source's properties using URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Source updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Source not found")
     })
-    @PutMapping("/{id}")
+    @PutMapping("/{identifier}")
     public ResponseEntity<SourceDto> updateSource(
-            @Parameter(description = "Source ID (SRC-xxxxxx)", required = true)
-            @PathVariable @ValidId String id,
+            @Parameter(description = "Source URL slug (e.g., leetcode) or ID (SRC-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier,
             @Parameter(description = "Updated source data", required = true)
             @Valid @RequestBody SourceUpdateDto updateDto) {
 
-        log.info("PUT /v1/sources/{} - Updating source", id);
-        SourceDto updatedSource = sourceService.updateSource(id, updateDto);
-        return ResponseEntity.ok(updatedSource);
+        log.info("PUT /v1/sources/{} - Updating source", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("SRC-")) {
+            SourceDto updatedSource = sourceService.updateSource(identifier, updateDto);
+            return ResponseEntity.ok(updatedSource);
+        } else {
+            SourceDto updatedSource = sourceService.updateSourceByUrlSlug(identifier, updateDto);
+            return ResponseEntity.ok(updatedSource);
+        }
     }
 
-    @Operation(summary = "Delete a source", description = "Soft deletes a source by ID. Cannot delete if source has questions.")
+    @Operation(summary = "Delete source", description = "Soft deletes a source by URL slug or ID. Cannot delete if source has questions.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Source deleted successfully"),
             @ApiResponse(responseCode = "400", description = "Cannot delete source with questions"),
             @ApiResponse(responseCode = "404", description = "Source not found")
     })
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{identifier}")
     public ResponseEntity<Void> deleteSource(
-            @Parameter(description = "Source ID (SRC-xxxxxx)", required = true)
-            @PathVariable @ValidId String id) {
+            @Parameter(description = "Source URL slug (e.g., leetcode) or ID (SRC-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier) {
 
-        log.info("DELETE /v1/sources/{} - Deleting source", id);
-        sourceService.deleteSource(id);
+        log.info("DELETE /v1/sources/{} - Deleting source", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("SRC-")) {
+            sourceService.deleteSource(identifier);
+        } else {
+            sourceService.deleteSourceByUrlSlug(identifier);
+        }
         return ResponseEntity.noContent().build();
     }
 

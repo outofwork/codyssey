@@ -73,4 +73,32 @@ public interface LabelCategoryRepository extends JpaRepository<LabelCategory, St
      */
     @Query("SELECT lc FROM LabelCategory lc WHERE lc.id = :id AND lc.deleted = false")
     Optional<LabelCategory> findByIdAndNotDeleted(@Param("id") String id);
+
+    /**
+     * Find label category by URL slug
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the label category if found
+     */
+    @Query("SELECT lc FROM LabelCategory lc WHERE lc.urlSlug = :urlSlug AND lc.deleted = false")
+    Optional<LabelCategory> findByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Check if URL slug exists (excluding specific ID)
+     *
+     * @param urlSlug the URL slug to check
+     * @param excludeId the ID to exclude from the check
+     * @return true if URL slug exists for a different entity
+     */
+    @Query("SELECT COUNT(lc) > 0 FROM LabelCategory lc WHERE lc.urlSlug = :urlSlug AND lc.id != :excludeId AND lc.deleted = false")
+    boolean existsByUrlSlugAndIdNot(@Param("urlSlug") String urlSlug, @Param("excludeId") String excludeId);
+
+    /**
+     * Check if URL slug exists
+     *
+     * @param urlSlug the URL slug to check
+     * @return true if URL slug exists
+     */
+    @Query("SELECT COUNT(lc) > 0 FROM LabelCategory lc WHERE lc.urlSlug = :urlSlug AND lc.deleted = false")
+    boolean existsByUrlSlug(@Param("urlSlug") String urlSlug);
 }

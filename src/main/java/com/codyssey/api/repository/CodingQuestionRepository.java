@@ -38,6 +38,68 @@ public interface CodingQuestionRepository extends JpaRepository<CodingQuestion, 
     Optional<CodingQuestion> findByIdAndNotDeleted(@Param("id") String id);
 
     /**
+     * Find coding question by URL slug
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the question if found
+     */
+    @Query("SELECT q FROM CodingQuestion q WHERE q.urlSlug = :urlSlug AND q.deleted = false")
+    Optional<CodingQuestion> findByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Find coding question by URL slug with associated labels (eager fetch)
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the question with labels if found and not deleted
+     */
+    @Query("SELECT DISTINCT q FROM CodingQuestion q " +
+           "LEFT JOIN FETCH q.questionLabels ql " +
+           "LEFT JOIN FETCH ql.label l " +
+           "LEFT JOIN FETCH l.category " +
+           "WHERE q.urlSlug = :urlSlug AND q.deleted = false")
+    Optional<CodingQuestion> findByUrlSlugWithLabels(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Find coding question by URL slug with associated companies (eager fetch)
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the question with companies if found and not deleted
+     */
+    @Query("SELECT DISTINCT q FROM CodingQuestion q " +
+           "LEFT JOIN FETCH q.questionCompanies qc " +
+           "LEFT JOIN FETCH qc.companyLabel cl " +
+           "LEFT JOIN FETCH cl.category " +
+           "WHERE q.urlSlug = :urlSlug AND q.deleted = false")
+    Optional<CodingQuestion> findByUrlSlugWithCompanies(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Check if URL slug exists (excluding specific ID)
+     *
+     * @param urlSlug the URL slug to check
+     * @param excludeId the ID to exclude from the check
+     * @return true if URL slug exists for a different entity
+     */
+    @Query("SELECT COUNT(q) > 0 FROM CodingQuestion q WHERE q.urlSlug = :urlSlug AND q.id != :excludeId AND q.deleted = false")
+    boolean existsByUrlSlugAndIdNot(@Param("urlSlug") String urlSlug, @Param("excludeId") String excludeId);
+
+    /**
+     * Check if URL slug exists
+     *
+     * @param urlSlug the URL slug to check
+     * @return true if URL slug exists
+     */
+    @Query("SELECT COUNT(q) > 0 FROM CodingQuestion q WHERE q.urlSlug = :urlSlug AND q.deleted = false")
+    boolean existsByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Find all questions that are not soft deleted with source eagerly fetched
+     *
+     * @return List of all non-deleted questions with sources
+     */
+    @Query("SELECT q FROM CodingQuestion q LEFT JOIN FETCH q.source WHERE q.deleted = false")
+    List<CodingQuestion> findByDeletedFalseWithSource();
+
+    /**
      * Find coding question by ID with associated labels (eager fetch)
      *
      * @param id the ID to search for

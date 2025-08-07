@@ -74,45 +74,70 @@ public class CodingQuestionController {
     }
 
     /**
-     * Get coding question by ID
+     * Get coding question by URL slug or ID
      * 
-     * @param id coding question ID
+     * @param identifier coding question URL slug or ID
      * @return coding question if found, 404 if not found
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<CodingQuestionDto> getQuestionById(@PathVariable @ValidId String id) {
-        log.info("GET /v1/coding-questions/{} - Retrieving coding question by ID", id);
-        Optional<CodingQuestionDto> question = codingQuestionService.getQuestionById(id);
-        return question.map(ResponseEntity::ok)
-                      .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/{identifier}")
+    public ResponseEntity<CodingQuestionDto> getQuestion(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/coding-questions/{} - Retrieving coding question", identifier);
+        
+        // First try to find by URL slug
+        Optional<CodingQuestionDto> questionBySlug = codingQuestionService.getQuestionByUrlSlug(identifier);
+        if (questionBySlug.isPresent()) {
+            return ResponseEntity.ok(questionBySlug.get());
+        }
+        
+        // If not found and it looks like an ID (starts with QST-), try ID lookup for backward compatibility
+        if (identifier.startsWith("QST-")) {
+            Optional<CodingQuestionDto> question = codingQuestionService.getQuestionById(identifier);
+            return question.map(ResponseEntity::ok)
+                          .orElse(ResponseEntity.notFound().build());
+        }
+        
+        return ResponseEntity.notFound().build();
     }
 
     /**
      * Update coding question
      * 
-     * @param id coding question ID
+     * @param identifier coding question URL slug or ID
      * @param updateDto updated coding question data
      * @return updated coding question
      */
-    @PutMapping("/{id}")
+    @PutMapping("/{identifier}")
     public ResponseEntity<CodingQuestionDto> updateQuestion(
-            @PathVariable @ValidId String id,
+            @PathVariable @NotBlank String identifier,
             @Valid @RequestBody CodingQuestionUpdateDto updateDto) {
-        log.info("PUT /v1/coding-questions/{} - Updating coding question", id);
-        CodingQuestionDto updatedQuestion = codingQuestionService.updateQuestion(id, updateDto);
-        return ResponseEntity.ok(updatedQuestion);
+        log.info("PUT /v1/coding-questions/{} - Updating coding question", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("QST-")) {
+            CodingQuestionDto updatedQuestion = codingQuestionService.updateQuestion(identifier, updateDto);
+            return ResponseEntity.ok(updatedQuestion);
+        } else {
+            CodingQuestionDto updatedQuestion = codingQuestionService.updateQuestionByUrlSlug(identifier, updateDto);
+            return ResponseEntity.ok(updatedQuestion);
+        }
     }
 
     /**
      * Delete coding question
      * 
-     * @param id coding question ID
+     * @param identifier coding question URL slug or ID
      * @return HTTP 204 No Content
      */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteQuestion(@PathVariable @ValidId String id) {
-        log.info("DELETE /v1/coding-questions/{} - Deleting coding question", id);
-        codingQuestionService.deleteQuestion(id);
+    @DeleteMapping("/{identifier}")
+    public ResponseEntity<Void> deleteQuestion(@PathVariable @NotBlank String identifier) {
+        log.info("DELETE /v1/coding-questions/{} - Deleting coding question", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("QST-")) {
+            codingQuestionService.deleteQuestion(identifier);
+        } else {
+            codingQuestionService.deleteQuestionByUrlSlug(identifier);
+        }
         return ResponseEntity.noContent().build();
     }
 

@@ -65,6 +65,13 @@ public class LabelCategory extends BaseEntity {
     private Boolean active = true;
 
     /**
+     * SEO-friendly URL slug for this category
+     */
+    @Size(max = 200)
+    @Column(name = "url_slug", unique = true)
+    private String urlSlug;
+
+    /**
      * Constructor with required fields
      */
     public LabelCategory(String name, String code, String description) {

@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST Controller for Label operations
@@ -69,54 +71,79 @@ public class LabelController {
         return new ResponseEntity<>(createdLabels, HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Get a specific label by ID", description = "Retrieves a specific label by its ID")
+    @Operation(summary = "Get label by URL slug or ID", description = "Retrieves a label by its SEO-friendly URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label found"),
             @ApiResponse(responseCode = "404", description = "Label not found")
     })
-    @GetMapping("/{id}")
-    public ResponseEntity<LabelDto> getLabelById(
-            @Parameter(description = "Label ID (LBL-xxxxxx)", required = true)
-            @PathVariable @ValidId String id) {
+    @GetMapping("/{identifier}")
+    public ResponseEntity<LabelDto> getLabel(
+            @Parameter(description = "Label URL slug (e.g., algorithms-binary-search) or ID (LBL-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier) {
 
-        log.info("GET /v1/labels/{} - Retrieving label by ID", id);
-        return labelService.getLabelById(id)
-                .map(label -> ResponseEntity.ok(label))
-                .orElse(ResponseEntity.notFound().build());
+        log.info("GET /v1/labels/{} - Retrieving label", identifier);
+        
+        // First try to find by URL slug
+        Optional<LabelDto> labelBySlug = labelService.getLabelByUrlSlug(identifier);
+        if (labelBySlug.isPresent()) {
+            return ResponseEntity.ok(labelBySlug.get());
+        }
+        
+        // If not found and it looks like an ID (starts with LBL-), try ID lookup for backward compatibility
+        if (identifier.startsWith("LBL-")) {
+            return labelService.getLabelById(identifier)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        
+        return ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Update an existing label", description = "Updates an existing label's properties")
+    @Operation(summary = "Update label", description = "Updates an existing label's properties using URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Label not found"),
             @ApiResponse(responseCode = "409", description = "Label name already exists in category/parent context")
     })
-    @PutMapping("/{id}")
+    @PutMapping("/{identifier}")
     public ResponseEntity<LabelDto> updateLabel(
-            @Parameter(description = "Label ID (LBL-xxxxxx)", required = true)
-            @PathVariable @ValidId String id,
+            @Parameter(description = "Label URL slug (e.g., algorithms-binary-search) or ID (LBL-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier,
             @Parameter(description = "Updated label data", required = true)
             @Valid @RequestBody LabelUpdateDto updateDto) {
 
-        log.info("PUT /v1/labels/{} - Updating label", id);
-        LabelDto updatedLabel = labelService.updateLabel(id, updateDto);
-        return ResponseEntity.ok(updatedLabel);
+        log.info("PUT /v1/labels/{} - Updating label", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("LBL-")) {
+            LabelDto updatedLabel = labelService.updateLabel(identifier, updateDto);
+            return ResponseEntity.ok(updatedLabel);
+        } else {
+            LabelDto updatedLabel = labelService.updateLabelByUrlSlug(identifier, updateDto);
+            return ResponseEntity.ok(updatedLabel);
+        }
     }
 
-    @Operation(summary = "Delete a label", description = "Soft deletes a label by ID. Cannot delete if label has children.")
+    @Operation(summary = "Delete label", description = "Soft deletes a label by URL slug or ID. Cannot delete if label has children.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Label deleted successfully"),
             @ApiResponse(responseCode = "400", description = "Cannot delete label with children"),
             @ApiResponse(responseCode = "404", description = "Label not found")
     })
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{identifier}")
     public ResponseEntity<Void> deleteLabel(
-            @Parameter(description = "Label ID (LBL-xxxxxx)", required = true)
-            @PathVariable @ValidId String id) {
+            @Parameter(description = "Label URL slug (e.g., algorithms-binary-search) or ID (LBL-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier) {
 
-        log.info("DELETE /v1/labels/{} - Deleting label", id);
-        labelService.deleteLabel(id);
+        log.info("DELETE /v1/labels/{} - Deleting label", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("LBL-")) {
+            labelService.deleteLabel(identifier);
+        } else {
+            labelService.deleteLabelByUrlSlug(identifier);
+        }
         return ResponseEntity.noContent().build();
     }
 

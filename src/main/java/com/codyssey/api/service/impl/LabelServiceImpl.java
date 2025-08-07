@@ -8,6 +8,7 @@ import com.codyssey.api.model.LabelCategory;
 import com.codyssey.api.repository.LabelCategoryRepository;
 import com.codyssey.api.repository.LabelRepository;
 import com.codyssey.api.service.LabelService;
+import com.codyssey.api.util.UrlSlugGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,6 +66,11 @@ public class LabelServiceImpl implements LabelService {
         label.setCategory(category);
         label.setParent(parent);
         label.setActive(createDto.getActive() != null ? createDto.getActive() : true);
+        
+        // Generate unique URL slug
+        String baseSlug = UrlSlugGenerator.generateLabelSlug(createDto.getName(), category.getName());
+        String uniqueSlug = generateUniqueSlug(baseSlug);
+        label.setUrlSlug(uniqueSlug);
 
         Label savedLabel = labelRepository.save(label);
         log.info("Successfully created label with ID: {}", savedLabel.getId());
@@ -131,6 +137,14 @@ public class LabelServiceImpl implements LabelService {
     public Optional<LabelDto> getLabelById(String id) {
         log.info("Retrieving label by ID: {}", id);
         return labelRepository.findByIdAndNotDeleted(id)
+                .map(this::convertToDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<LabelDto> getLabelByUrlSlug(String urlSlug) {
+        log.info("Retrieving label by URL slug: {}", urlSlug);
+        return labelRepository.findByUrlSlug(urlSlug)
                 .map(this::convertToDto);
     }
 
@@ -211,6 +225,90 @@ public class LabelServiceImpl implements LabelService {
         labelRepository.save(label);
 
         log.info("Successfully soft deleted label with ID: {}", id);
+    }
+
+    @Override
+    public LabelDto updateLabelByUrlSlug(String urlSlug, LabelUpdateDto updateDto) {
+        log.info("Updating label with URL slug: {}", urlSlug);
+
+        Label label = labelRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with URL slug: " + urlSlug));
+
+        // Update fields only if they are provided
+        if (updateDto.getName() != null) {
+            // Check name uniqueness if name is being changed
+            if (!label.getName().equals(updateDto.getName())) {
+                String parentId = label.getParent() != null ? label.getParent().getId() : null;
+                if (labelRepository.existsByNameAndCategoryAndParentExcludingId(
+                        updateDto.getName(),
+                        label.getCategory().getId(),
+                        parentId,
+                        label.getId())) {
+                    throw new DuplicateResourceException("Label name already exists in this category/parent context");
+                }
+            }
+            label.setName(updateDto.getName());
+            
+            // Update URL slug if name changes
+            String baseSlug = UrlSlugGenerator.generateLabelSlug(updateDto.getName(), label.getCategory().getName());
+            String uniqueSlug = generateUniqueSlug(baseSlug, label.getId());
+            label.setUrlSlug(uniqueSlug);
+        }
+
+        if (updateDto.getDescription() != null) {
+            label.setDescription(updateDto.getDescription());
+        }
+
+        if (updateDto.getParentId() != null) {
+            if (updateDto.getParentId().trim().isEmpty()) {
+                // Remove parent (make it a root label)
+                label.setParent(null);
+            } else {
+                // Set new parent
+                Label newParent = labelRepository.findByIdAndNotDeleted(updateDto.getParentId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Parent label not found with ID: " + updateDto.getParentId()));
+
+                // Prevent circular references
+                if (isCircularReference(label, newParent)) {
+                    throw new IllegalArgumentException("Cannot set parent: would create circular reference");
+                }
+
+                // Ensure parent is in the same category
+                if (!newParent.getCategory().getId().equals(label.getCategory().getId())) {
+                    throw new IllegalArgumentException("Parent label must be in the same category");
+                }
+
+                label.setParent(newParent);
+            }
+        }
+
+        if (updateDto.getActive() != null) {
+            label.setActive(updateDto.getActive());
+        }
+
+        Label updatedLabel = labelRepository.save(label);
+        log.info("Successfully updated label with URL slug: {}", urlSlug);
+
+        return convertToDto(updatedLabel);
+    }
+
+    @Override
+    public void deleteLabelByUrlSlug(String urlSlug) {
+        log.info("Soft deleting label with URL slug: {}", urlSlug);
+
+        Label label = labelRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with URL slug: " + urlSlug));
+
+        // Check if label has children
+        List<Label> children = labelRepository.findByParent(label);
+        if (!children.isEmpty()) {
+            throw new IllegalArgumentException("Cannot delete label with child labels. Delete children first or reassign them.");
+        }
+
+        label.setDeleted(true);
+        labelRepository.save(label);
+
+        log.info("Successfully soft deleted label with URL slug: {}", urlSlug);
     }
 
     @Override
@@ -355,6 +453,8 @@ public class LabelServiceImpl implements LabelService {
         dto.setName(label.getName());
         dto.setDescription(label.getDescription());
         dto.setActive(label.getActive());
+        dto.setUrlSlug(label.getUrlSlug());
+        dto.setUri("/api/v1/labels/" + label.getUrlSlug());
         dto.setCreatedAt(label.getCreatedAt());
         dto.setUpdatedAt(label.getUpdatedAt());
 
@@ -368,6 +468,8 @@ public class LabelServiceImpl implements LabelService {
             LabelSummaryDto parentDto = new LabelSummaryDto();
             parentDto.setId(label.getParent().getId());
             parentDto.setName(label.getParent().getName());
+            parentDto.setUrlSlug(label.getParent().getUrlSlug());
+            parentDto.setUri("/api/v1/labels/" + label.getParent().getUrlSlug());
             dto.setParent(parentDto);
         }
 
@@ -379,6 +481,8 @@ public class LabelServiceImpl implements LabelService {
                         LabelSummaryDto childDto = new LabelSummaryDto();
                         childDto.setId(child.getId());
                         childDto.setName(child.getName());
+                        childDto.setUrlSlug(child.getUrlSlug());
+                        childDto.setUri("/api/v1/labels/" + child.getUrlSlug());
                         return childDto;
                     })
                     .collect(Collectors.toList());
@@ -439,5 +543,29 @@ public class LabelServiceImpl implements LabelService {
         dto.setName(category.getName());
         dto.setCode(category.getCode());
         return dto;
+    }
+
+    /**
+     * Generate unique URL slug for new entities
+     */
+    private String generateUniqueSlug(String baseSlug) {
+        return generateUniqueSlug(baseSlug, null);
+    }
+
+    /**
+     * Generate unique URL slug, excluding a specific entity ID
+     */
+    private String generateUniqueSlug(String baseSlug, String excludeId) {
+        String slug = baseSlug;
+        int counter = 1;
+        
+        while (excludeId != null ? 
+               labelRepository.existsByUrlSlugAndIdNot(slug, excludeId) : 
+               labelRepository.existsByUrlSlug(slug)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+        
+        return slug;
     }
 }

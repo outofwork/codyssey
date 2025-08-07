@@ -28,6 +28,10 @@ public class CodingQuestionSummaryDto {
     
     private String status;
     
+    private String urlSlug;
+    
+    private String uri;
+    
     private LocalDateTime createdAt;
     
     private List<LabelSummaryDto> primaryTags; // Top 3-5 most important tags

@@ -61,6 +61,14 @@ public interface SourceService {
     Optional<SourceDto> getSourceByCode(String code);
 
     /**
+     * Get source by URL slug
+     *
+     * @param urlSlug URL slug
+     * @return source DTO if found
+     */
+    Optional<SourceDto> getSourceByUrlSlug(String urlSlug);
+
+    /**
      * Update source
      *
      * @param id        source ID
@@ -70,11 +78,27 @@ public interface SourceService {
     SourceDto updateSource(String id, SourceUpdateDto updateDto);
 
     /**
+     * Update source by URL slug
+     *
+     * @param urlSlug   source URL slug
+     * @param updateDto updated source data
+     * @return updated source DTO
+     */
+    SourceDto updateSourceByUrlSlug(String urlSlug, SourceUpdateDto updateDto);
+
+    /**
      * Soft delete source
      *
      * @param id source ID
      */
     void deleteSource(String id);
+
+    /**
+     * Soft delete source by URL slug
+     *
+     * @param urlSlug source URL slug
+     */
+    void deleteSourceByUrlSlug(String urlSlug);
 
     /**
      * Search sources by name

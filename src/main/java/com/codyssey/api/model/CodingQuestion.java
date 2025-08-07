@@ -119,6 +119,13 @@ public class CodingQuestion extends BaseEntity {
     private List<QuestionCompany> questionCompanies;
 
     /**
+     * SEO-friendly URL slug for this question
+     */
+    @Size(max = 300)
+    @Column(name = "url_slug", unique = true)
+    private String urlSlug;
+
+    /**
      * Constructor with required fields
      */
     public CodingQuestion(String title, String shortDescription, String filePath, Source source, User createdByUser) {

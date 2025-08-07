@@ -38,6 +38,10 @@ public class CodingQuestionDto {
     
     private String status;
     
+    private String urlSlug;
+    
+    private String uri;
+    
     private UserDto createdByUser;
     
     private LocalDateTime createdAt;

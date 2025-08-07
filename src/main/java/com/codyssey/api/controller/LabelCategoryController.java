@@ -19,6 +19,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * REST Controller for LabelCategory operations
@@ -72,52 +74,77 @@ public class LabelCategoryController {
         }
     }
 
-    @Operation(summary = "Get label category by ID", description = "Retrieves a specific label category by its ID")
+    @Operation(summary = "Get label category by URL slug or ID", description = "Retrieves a label category by its SEO-friendly URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label category found"),
             @ApiResponse(responseCode = "404", description = "Label category not found")
     })
-    @GetMapping("/{id}")
-    public ResponseEntity<LabelCategoryDto> getCategoryById(
-            @Parameter(description = "Label category ID (15-character alphanumeric)", required = true)
-            @PathVariable @ValidId String id) {
+    @GetMapping("/{identifier}")
+    public ResponseEntity<LabelCategoryDto> getCategory(
+            @Parameter(description = "Label category URL slug (e.g., difficulty-level) or ID (CAT-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier) {
 
-        log.info("GET /v1/labelcategories/{} - Retrieving label category by ID", id);
-        return labelCategoryService.getCategoryById(id)
-                .map(category -> ResponseEntity.ok(category))
-                .orElse(ResponseEntity.notFound().build());
+        log.info("GET /v1/labelcategories/{} - Retrieving label category", identifier);
+        
+        // First try to find by URL slug
+        Optional<LabelCategoryDto> categoryBySlug = labelCategoryService.getCategoryByUrlSlug(identifier);
+        if (categoryBySlug.isPresent()) {
+            return ResponseEntity.ok(categoryBySlug.get());
+        }
+        
+        // If not found and it looks like an ID (starts with CAT-), try ID lookup for backward compatibility
+        if (identifier.startsWith("CAT-")) {
+            return labelCategoryService.getCategoryById(identifier)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        
+        return ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Update label category", description = "Updates an existing label category (code cannot be changed)")
+    @Operation(summary = "Update label category", description = "Updates an existing label category using URL slug or ID (code cannot be changed)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label category updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Label category not found")
     })
-    @PutMapping("/{id}")
+    @PutMapping("/{identifier}")
     public ResponseEntity<LabelCategoryDto> updateCategory(
-            @Parameter(description = "Label category ID (15-character alphanumeric)", required = true)
-            @PathVariable @ValidId String id,
+            @Parameter(description = "Label category URL slug (e.g., difficulty-level) or ID (CAT-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier,
             @Parameter(description = "Updated label category data (code cannot be changed)", required = true)
             @Valid @RequestBody LabelCategoryUpdateDto updateDto) {
 
-        log.info("PUT /v1/labelcategories/{} - Updating label category", id);
-        LabelCategoryDto updatedCategory = labelCategoryService.updateCategory(id, updateDto);
-        return ResponseEntity.ok(updatedCategory);
+        log.info("PUT /v1/labelcategories/{} - Updating label category", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("CAT-")) {
+            LabelCategoryDto updatedCategory = labelCategoryService.updateCategory(identifier, updateDto);
+            return ResponseEntity.ok(updatedCategory);
+        } else {
+            LabelCategoryDto updatedCategory = labelCategoryService.updateCategoryByUrlSlug(identifier, updateDto);
+            return ResponseEntity.ok(updatedCategory);
+        }
     }
 
-    @Operation(summary = "Delete label category", description = "Soft deletes a label category by ID")
+    @Operation(summary = "Delete label category", description = "Soft deletes a label category by URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Label category deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Label category not found")
     })
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{identifier}")
     public ResponseEntity<Void> deleteCategory(
-            @Parameter(description = "Label category ID (15-character alphanumeric)", required = true)
-            @PathVariable @ValidId String id) {
+            @Parameter(description = "Label category URL slug (e.g., difficulty-level) or ID (CAT-xxxxxx)", required = true)
+            @PathVariable @NotBlank String identifier) {
 
-        log.info("DELETE /v1/labelcategories/{} - Deleting label category", id);
-        labelCategoryService.deleteCategory(id);
+        log.info("DELETE /v1/labelcategories/{} - Deleting label category", identifier);
+        
+        // Try URL slug first, then ID if it looks like an ID
+        if (identifier.startsWith("CAT-")) {
+            labelCategoryService.deleteCategory(identifier);
+        } else {
+            labelCategoryService.deleteCategoryByUrlSlug(identifier);
+        }
         return ResponseEntity.noContent().build();
     }
 

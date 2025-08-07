@@ -95,6 +95,13 @@ public class User extends BaseEntity {
     private Set<Role> roles = new HashSet<>();
 
     /**
+     * SEO-friendly URL slug for this user (based on username)
+     */
+    @Size(max = 150)
+    @Column(name = "url_slug", unique = true)
+    private String urlSlug;
+
+    /**
      * Constructor with basic fields
      */
     public User(String username, String email, String password) {

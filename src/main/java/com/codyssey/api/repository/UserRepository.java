@@ -76,6 +76,14 @@ public interface UserRepository extends JpaRepository<User, String> {
     List<User> findByNameContaining(@Param("searchTerm") String searchTerm);
 
     /**
+     * Find all users that are not soft deleted
+     *
+     * @return List of all non-deleted users
+     */
+    @Query("SELECT u FROM User u WHERE u.deleted = false")
+    List<User> findByDeletedFalse();
+
+    /**
      * Find user by ID that is not deleted
      *
      * @param id the user ID
@@ -83,4 +91,32 @@ public interface UserRepository extends JpaRepository<User, String> {
      */
     @Query("SELECT u FROM User u WHERE u.id = :id AND u.deleted = false")
     Optional<User> findByIdAndNotDeleted(@Param("id") String id);
+
+    /**
+     * Find user by URL slug
+     *
+     * @param urlSlug the URL slug
+     * @return Optional containing the user if found
+     */
+    @Query("SELECT u FROM User u WHERE u.urlSlug = :urlSlug AND u.deleted = false")
+    Optional<User> findByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Check if URL slug exists (excluding specific ID)
+     *
+     * @param urlSlug the URL slug to check
+     * @param excludeId the ID to exclude from the check
+     * @return true if URL slug exists for a different entity
+     */
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.urlSlug = :urlSlug AND u.id != :excludeId AND u.deleted = false")
+    boolean existsByUrlSlugAndIdNot(@Param("urlSlug") String urlSlug, @Param("excludeId") String excludeId);
+
+    /**
+     * Check if URL slug exists
+     *
+     * @param urlSlug the URL slug to check
+     * @return true if URL slug exists
+     */
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.urlSlug = :urlSlug AND u.deleted = false")
+    boolean existsByUrlSlug(@Param("urlSlug") String urlSlug);
 }

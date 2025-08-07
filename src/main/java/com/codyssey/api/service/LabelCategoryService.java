@@ -45,6 +45,14 @@ public interface LabelCategoryService {
     Optional<LabelCategoryDto> getCategoryById(String id);
 
     /**
+     * Get label category by URL slug
+     *
+     * @param urlSlug label category URL slug
+     * @return label category DTO if found
+     */
+    Optional<LabelCategoryDto> getCategoryByUrlSlug(String urlSlug);
+
+    /**
      * Get label category by code
      *
      * @param code the category code
@@ -62,11 +70,27 @@ public interface LabelCategoryService {
     LabelCategoryDto updateCategory(String id, LabelCategoryUpdateDto updateDto);
 
     /**
+     * Update label category by URL slug
+     *
+     * @param urlSlug   label category URL slug
+     * @param updateDto updated label category data
+     * @return updated label category DTO
+     */
+    LabelCategoryDto updateCategoryByUrlSlug(String urlSlug, LabelCategoryUpdateDto updateDto);
+
+    /**
      * Soft delete label category
      *
      * @param id label category ID (15-character alphanumeric)
      */
     void deleteCategory(String id);
+
+    /**
+     * Soft delete label category by URL slug
+     *
+     * @param urlSlug label category URL slug
+     */
+    void deleteCategoryByUrlSlug(String urlSlug);
 
     /**
      * Search label categories by name
