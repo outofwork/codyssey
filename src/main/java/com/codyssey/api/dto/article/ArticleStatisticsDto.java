@@ -36,31 +36,23 @@ public class ArticleStatisticsDto {
     private Long totalCategories;
     private List<CategoryStatistic> articlesByCategory;
     
-    // Temporal Statistics
-    private List<MonthlyStatistic> articlesByMonth;
-    
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SourceStatistic {
-        private String sourceId;
         private String sourceName;
-        private String sourceCode;
         private Long articleCount;
-        private Double percentage;
+        private String uri; // URI to access articles by this source
     }
     
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TagStatistic {
-        private String labelId;
         private String labelName;
         private String categoryCode;
         private Long articleCount;
-        private Long primaryCount;
-        private Long secondaryCount;
-        private Double averageRelevanceScore;
+        private String uri; // URI to access articles by this tag
     }
     
     @Data
@@ -73,13 +65,5 @@ public class ArticleStatisticsDto {
         private Long articleCount;
         private Long uniqueLabelsUsed;
         private List<String> topLabels;
-    }
-    
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class MonthlyStatistic {
-        private String month; // Format: "2024-01"
-        private Long articleCount;
     }
 }

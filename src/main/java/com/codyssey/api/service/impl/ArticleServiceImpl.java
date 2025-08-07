@@ -334,10 +334,9 @@ public class ArticleServiceImpl implements ArticleService {
         List<ArticleStatisticsDto.SourceStatistic> sourceStats = allSources.stream()
                 .map(source -> {
                     Long count = sourceCountMap.getOrDefault(source.getId(), 0L);
-                    Double percentage = stats.getTotalArticles() > 0 ? 
-                        (count.doubleValue() / stats.getTotalArticles()) * 100 : 0.0;
+                    String uri = "/api/v1/articles/source/" + source.getUrlSlug();
                     return new ArticleStatisticsDto.SourceStatistic(
-                        source.getId(), source.getName(), source.getCode(), count, percentage);
+                        source.getName(), count, uri);
                 })
                 .sorted((s1, s2) -> s2.getArticleCount().compareTo(s1.getArticleCount()))
                 .collect(Collectors.toList());
@@ -367,14 +366,10 @@ public class ArticleServiceImpl implements ArticleService {
                         .count();
                     Long secondaryCount = articleCount - primaryCount;
                     
-                    Double avgRelevance = articleLabelsForLabel.stream()
-                        .mapToInt(ArticleLabel::getRelevanceScore)
-                        .average()
-                        .orElse(0.0);
+                    String uri = "/api/v1/articles/label/" + label.getUrlSlug();
                     
                     return new ArticleStatisticsDto.TagStatistic(
-                        labelId, label.getName(), label.getCategory().getCode(),
-                        articleCount, primaryCount, secondaryCount, avgRelevance);
+                        label.getName(), label.getCategory().getCode(), articleCount, uri);
                 })
                 .filter(stat -> stat != null)
                 .sorted((t1, t2) -> t2.getArticleCount().compareTo(t1.getArticleCount()))
@@ -424,19 +419,6 @@ public class ArticleServiceImpl implements ArticleService {
                 .collect(Collectors.toList());
         stats.setArticlesByCategory(categoryStats);
         stats.setTotalCategories((long) categoryStats.size());
-        
-        // Monthly Statistics (articles by creation month)
-        Map<String, Long> monthlyCountMap = allArticles.stream()
-                .collect(Collectors.groupingBy(
-                    a -> a.getCreatedAt().toLocalDate().toString().substring(0, 7), // "YYYY-MM"
-                    Collectors.counting()
-                ));
-        
-        List<ArticleStatisticsDto.MonthlyStatistic> monthlyStats = monthlyCountMap.entrySet().stream()
-                .map(entry -> new ArticleStatisticsDto.MonthlyStatistic(entry.getKey(), entry.getValue()))
-                .sorted((m1, m2) -> m2.getMonth().compareTo(m1.getMonth()))
-                .collect(Collectors.toList());
-        stats.setArticlesByMonth(monthlyStats);
         
         // Also set totalTags for backwards compatibility
         stats.setTotalTags(stats.getTotalUniqueTagsUsed());
