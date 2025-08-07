@@ -110,8 +110,24 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
     @Transactional(readOnly = true)
     public Optional<CodingQuestionDto> getQuestionById(String id) {
         log.info("Retrieving coding question by ID: {}", id);
-        return codingQuestionRepository.findByIdAndNotDeleted(id)
-                .map(this::convertToDto);
+        
+        // First get the basic question
+        Optional<CodingQuestion> questionOpt = codingQuestionRepository.findByIdAndNotDeleted(id);
+        if (questionOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        CodingQuestion question = questionOpt.get();
+        
+        // Load labels and companies separately to avoid MultipleBagFetchException
+        List<QuestionLabel> questionLabels = questionLabelRepository.findByQuestionId(id);
+        List<QuestionCompany> questionCompanies = questionCompanyRepository.findByQuestionId(id);
+        
+        // Manually set the loaded collections
+        question.setQuestionLabels(questionLabels);
+        question.setQuestionCompanies(questionCompanies);
+        
+        return Optional.of(convertToDto(question));
     }
 
     @Override
@@ -405,6 +421,36 @@ public class CodingQuestionServiceImpl implements CodingQuestionService {
         dto.setCreatedAt(question.getCreatedAt());
         dto.setUpdatedAt(question.getUpdatedAt());
         dto.setVersion(question.getVersion());
+
+        // Populate associated labels/tags
+        if (question.getQuestionLabels() != null && !question.getQuestionLabels().isEmpty()) {
+            List<LabelSummaryDto> tags = question.getQuestionLabels().stream()
+                    .filter(ql -> !ql.getDeleted())
+                    .map(ql -> {
+                        LabelSummaryDto tagDto = new LabelSummaryDto();
+                        tagDto.setId(ql.getLabel().getId());
+                        tagDto.setName(ql.getLabel().getName());
+                        tagDto.setCategoryCode(ql.getLabel().getCategory().getCode());
+                        return tagDto;
+                    })
+                    .toList();
+            dto.setTags(tags);
+        }
+
+        // Populate associated companies
+        if (question.getQuestionCompanies() != null && !question.getQuestionCompanies().isEmpty()) {
+            List<LabelSummaryDto> companies = question.getQuestionCompanies().stream()
+                    .filter(qc -> !qc.getDeleted())
+                    .map(qc -> {
+                        LabelSummaryDto companyDto = new LabelSummaryDto();
+                        companyDto.setId(qc.getCompanyLabel().getId());
+                        companyDto.setName(qc.getCompanyLabel().getName());
+                        companyDto.setCategoryCode(qc.getCompanyLabel().getCategory().getCode());
+                        return companyDto;
+                    })
+                    .toList();
+            dto.setCompanies(companies);
+        }
 
         return dto;
     }

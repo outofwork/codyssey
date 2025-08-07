@@ -38,6 +38,32 @@ public interface CodingQuestionRepository extends JpaRepository<CodingQuestion, 
     Optional<CodingQuestion> findByIdAndNotDeleted(@Param("id") String id);
 
     /**
+     * Find coding question by ID with associated labels (eager fetch)
+     *
+     * @param id the ID to search for
+     * @return Optional containing the question with labels if found and not deleted
+     */
+    @Query("SELECT DISTINCT q FROM CodingQuestion q " +
+           "LEFT JOIN FETCH q.questionLabels ql " +
+           "LEFT JOIN FETCH ql.label l " +
+           "LEFT JOIN FETCH l.category " +
+           "WHERE q.id = :id AND q.deleted = false")
+    Optional<CodingQuestion> findByIdWithLabels(@Param("id") String id);
+
+    /**
+     * Find coding question by ID with associated companies (eager fetch)
+     *
+     * @param id the ID to search for
+     * @return Optional containing the question with companies if found and not deleted
+     */
+    @Query("SELECT DISTINCT q FROM CodingQuestion q " +
+           "LEFT JOIN FETCH q.questionCompanies qc " +
+           "LEFT JOIN FETCH qc.companyLabel cl " +
+           "LEFT JOIN FETCH cl.category " +
+           "WHERE q.id = :id AND q.deleted = false")
+    Optional<CodingQuestion> findByIdWithCompanies(@Param("id") String id);
+
+    /**
      * Find all active coding questions that are not soft deleted
      *
      * @return List of active, non-deleted coding questions
