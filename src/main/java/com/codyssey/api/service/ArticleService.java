@@ -1,7 +1,6 @@
 package com.codyssey.api.service;
 
 import com.codyssey.api.dto.article.*;
-import com.codyssey.api.model.Article;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -96,85 +95,48 @@ public interface ArticleService {
     Page<ArticleSummaryDto> searchArticles(String searchTerm, Pageable pageable);
 
     /**
-     * Get articles by article type
+     * Get articles by source
      *
-     * @param articleType article type
-     * @return list of articles
+     * @param sourceId source ID
+     * @return list of articles from the source
      */
-    List<ArticleSummaryDto> getArticlesByType(String articleType);
+    List<ArticleSummaryDto> getArticlesBySource(String sourceId);
 
     /**
-     * Get articles by category label ID
-     *
-     * @param categoryLabelId category label ID
-     * @return list of articles
-     */
-    List<ArticleSummaryDto> getArticlesByCategoryLabelId(String categoryLabelId);
-
-    /**
-     * Get articles by category label slug
-     *
-     * @param categoryLabelSlug category label slug
-     * @return list of articles
-     */
-    List<ArticleSummaryDto> getArticlesByCategoryLabelSlug(String categoryLabelSlug);
-
-    /**
-     * Get articles by difficulty label ID
-     *
-     * @param difficultyLabelId difficulty label ID
-     * @return list of articles
-     */
-    List<ArticleSummaryDto> getArticlesByDifficultyLabelId(String difficultyLabelId);
-
-    /**
-     * Get articles by difficulty label slug
-     *
-     * @param difficultyLabelSlug difficulty label slug
-     * @return list of articles
-     */
-    List<ArticleSummaryDto> getArticlesByDifficultyLabelSlug(String difficultyLabelSlug);
-
-    /**
-     * Get articles by associated label ID
+     * Get articles by label/tag
      *
      * @param labelId label ID
-     * @return list of articles
+     * @return list of articles tagged with the specified label
      */
-    List<ArticleSummaryDto> getArticlesByLabelId(String labelId);
+    List<ArticleSummaryDto> getArticlesByLabel(String labelId);
 
     /**
-     * Get articles by associated label slug
+     * Get articles by label/tag URL slug
      *
-     * @param labelSlug label slug
-     * @return list of articles
+     * @param labelSlug label URL slug
+     * @return list of articles tagged with the specified label
      */
     List<ArticleSummaryDto> getArticlesByLabelSlug(String labelSlug);
 
     /**
-     * Create article-label relationship
+     * Get articles by source URL slug
      *
-     * @param createDto article-label creation data
-     * @return success status
+     * @param sourceSlug source URL slug
+     * @return list of articles from the specified source
      */
-    boolean createArticleLabel(ArticleLabelCreateDto createDto);
+    List<ArticleSummaryDto> getArticlesBySourceSlug(String sourceSlug);
 
     /**
-     * Create multiple article-label relationships
+     * Advanced search with multiple filters
      *
-     * @param bulkCreateDto bulk creation data
-     * @return number of created relationships
+     * @param sourceIds list of source IDs to filter by
+     * @param labelIds list of label IDs to filter by
+     * @param searchTerm search term for title/description
+     * @return list of articles matching the filters
      */
-    int createArticleLabels(ArticleLabelBulkCreateDto bulkCreateDto);
-
-    /**
-     * Remove article-label relationship
-     *
-     * @param articleId article ID
-     * @param labelId label ID
-     * @return success status
-     */
-    boolean removeArticleLabel(String articleId, String labelId);
+    List<ArticleSummaryDto> searchWithFilters(List<String> sourceIds,
+                                              List<String> labelIds,
+                                              String searchTerm);
 
     /**
      * Get article statistics
@@ -184,63 +146,67 @@ public interface ArticleService {
     ArticleStatisticsDto getArticleStatistics();
 
     /**
-     * Get recent articles
+     * Check if an article title is available within a source
      *
-     * @param pageable pagination information
-     * @return recent articles
+     * @param title article title
+     * @param sourceId source ID
+     * @return true if title is available
      */
-    Page<ArticleSummaryDto> getRecentArticles(Pageable pageable);
+    boolean checkTitleAvailability(String title, String sourceId);
 
     /**
-     * Advanced search with filters
+     * Add a label to an article
      *
-     * @param articleTypes list of article types
-     * @param categoryLabelIds list of category label IDs
-     * @param difficultyLabelIds list of difficulty label IDs
-     * @param labelIds list of label IDs
-     * @param searchTerm search term
-     * @return filtered articles
+     * @param createDto article-label relationship data
      */
-    List<ArticleSummaryDto> searchWithFilters(List<String> articleTypes,
-                                             List<String> categoryLabelIds,
-                                             List<String> difficultyLabelIds,
-                                             List<String> labelIds,
-                                             String searchTerm);
+    void addLabelToArticle(ArticleLabelCreateDto createDto);
 
     /**
-     * Increment view count
+     * Add multiple labels to an article
+     *
+     * @param bulkCreateDto bulk article-label relationship data
+     */
+    void addLabelsToArticle(ArticleLabelBulkCreateDto bulkCreateDto);
+
+    /**
+     * Remove a label from an article
+     *
+     * @param articleId article ID
+     * @param labelId label ID
+     */
+    void removeLabelFromArticle(String articleId, String labelId);
+
+    /**
+     * Get the markdown content of an article
      *
      * @param id article ID
+     * @return markdown content of the article
+     * @throws Exception if file cannot be read
      */
-    void incrementViewCount(String id);
+    String getArticleContent(String id) throws Exception;
 
     /**
-     * Increment like count
+     * Get the markdown content of an article by URL slug
      *
-     * @param id article ID
+     * @param urlSlug article URL slug
+     * @return markdown content of the article
+     * @throws Exception if file cannot be read
      */
-    void incrementLikeCount(String id);
+    String getArticleContentByUrlSlug(String urlSlug) throws Exception;
 
     /**
-     * Increment bookmark count
+     * Get all labels for a specific article
      *
-     * @param id article ID
+     * @param articleId article ID
+     * @return list of article-label relationships
      */
-    void incrementBookmarkCount(String id);
+    List<ArticleLabelReferenceDto> getArticleLabels(String articleId);
 
     /**
-     * Convert entity to DTO
+     * Get primary labels for a specific article
      *
-     * @param article article entity
-     * @return article DTO
+     * @param articleId article ID
+     * @return list of primary article-label relationships
      */
-    ArticleDto convertToDto(Article article);
-
-    /**
-     * Convert entity to summary DTO
-     *
-     * @param article article entity
-     * @return article summary DTO
-     */
-    ArticleSummaryDto convertToSummaryDto(Article article);
+    List<ArticleLabelReferenceDto> getPrimaryArticleLabels(String articleId);
 }

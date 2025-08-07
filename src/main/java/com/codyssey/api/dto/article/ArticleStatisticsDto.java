@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
-
 /**
  * Data Transfer Object for Article statistics
  */
@@ -14,15 +12,19 @@ import java.util.Map;
 @AllArgsConstructor
 public class ArticleStatisticsDto {
 
-    private long totalArticles;
+    private Long totalArticles;
     
-    private Map<String, Long> articlesByType;
+    private Long activeArticles;
     
-    private Map<String, Long> articlesByDifficulty;
+    private Long draftArticles;
     
-    private Map<String, Long> articlesByStatus;
+    private Long deprecatedArticles;
     
-    private int totalTags;
+    private Long totalTags;
     
-    private double averageReadingTime;
+    private String mostUsedTag;
+    
+    private Long articlesWithSource;
+    
+    private Long articlesWithoutSource;
 }

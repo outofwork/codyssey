@@ -33,16 +33,6 @@ public class ArticleIdGenerator implements IdentifierGenerator {
         return id.matches("^ART-\\d{6}$");
     }
 
-    /**
-     * Generate a simple Article ID for testing/manual creation
-     *
-     * @return generated Article ID
-     */
-    public static String generateArticleId() {
-        // For simple generation without database access
-        return PREFIX + String.format("%06d", System.currentTimeMillis() % 900000 + 100000);
-    }
-
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) {
         Connection connection = null;

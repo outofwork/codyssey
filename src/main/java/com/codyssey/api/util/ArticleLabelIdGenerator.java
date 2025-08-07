@@ -12,12 +12,12 @@ import java.sql.SQLException;
 /**
  * Custom ID generator for ArticleLabel entities
  * <p>
- * Generates IDs in format: ARL-100001, ARL-100002, etc.
+ * Generates IDs in format: ALB-100001, ALB-100002, etc.
  * Ensures uniqueness by querying the database for the next available number.
  */
 public class ArticleLabelIdGenerator implements IdentifierGenerator {
 
-    private static final String PREFIX = "ARL-";
+    private static final String PREFIX = "ALB-";
     private static final int STARTING_NUMBER = 100001;
 
     /**
@@ -30,17 +30,7 @@ public class ArticleLabelIdGenerator implements IdentifierGenerator {
         if (id == null) {
             return false;
         }
-        return id.matches("^ARL-\\d{6}$");
-    }
-
-    /**
-     * Generate a simple ArticleLabel ID for testing/manual creation
-     *
-     * @return generated ArticleLabel ID
-     */
-    public static String generateArticleLabelId() {
-        // For simple generation without database access
-        return PREFIX + String.format("%06d", System.currentTimeMillis() % 900000 + 100000);
+        return id.matches("^ALB-\\d{6}$");
     }
 
     @Override
@@ -54,7 +44,7 @@ public class ArticleLabelIdGenerator implements IdentifierGenerator {
 
         try {
             // Get the maximum existing number for article labels (only numeric IDs)
-            String sql = "SELECT MAX(CAST(SUBSTRING(id, 5) AS INTEGER)) FROM article_labels WHERE id ~ '^ARL-\\d{6}$'";
+            String sql = "SELECT MAX(CAST(SUBSTRING(id, 5) AS INTEGER)) FROM article_labels WHERE id ~ '^ALB-\\d{6}$'";
             PreparedStatement statement = connection.prepareStatement(sql);
             ResultSet resultSet = statement.executeQuery();
 

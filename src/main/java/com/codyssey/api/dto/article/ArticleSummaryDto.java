@@ -1,13 +1,15 @@
 package com.codyssey.api.dto.article;
 
+import com.codyssey.api.dto.label.LabelSummaryDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Data Transfer Object for Article summary information
+ * Data Transfer Object for Article summary (for lists/search results)
  */
 @Data
 @NoArgsConstructor
@@ -20,21 +22,15 @@ public class ArticleSummaryDto {
     
     private String shortDescription;
     
-    private String articleType;
-    
-    private List<ArticleLabelReferenceDto> categoryLabels;
-    
-    private ArticleLabelReferenceDto difficultyLabel;
+    private String sourceName;
     
     private String status;
     
-    private Integer readingTimeMinutes;
+    private String uri;
     
     private String contentUrl;
     
-    private Integer viewCount;
+    private LocalDateTime createdAt;
     
-    private Integer likeCount;
-    
-    private Long version;
+    private List<LabelSummaryDto> primaryTags; // Top 3-5 most important tags
 }

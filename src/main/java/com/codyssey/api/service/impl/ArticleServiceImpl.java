@@ -1,91 +1,89 @@
 package com.codyssey.api.service.impl;
 
 import com.codyssey.api.dto.article.*;
+import com.codyssey.api.dto.label.LabelSummaryDto;
+import com.codyssey.api.dto.source.SourceSummaryDto;
+import com.codyssey.api.dto.user.UserDto;
 import com.codyssey.api.exception.DuplicateResourceException;
 import com.codyssey.api.exception.ResourceNotFoundException;
-import com.codyssey.api.model.Article;
-import com.codyssey.api.model.ArticleLabel;
-import com.codyssey.api.model.Label;
-import com.codyssey.api.repository.ArticleLabelRepository;
-import com.codyssey.api.repository.ArticleRepository;
-import com.codyssey.api.repository.LabelRepository;
+import com.codyssey.api.model.*;
+import com.codyssey.api.repository.*;
 import com.codyssey.api.service.ArticleService;
-import com.codyssey.api.util.ArticleIdGenerator;
-import com.codyssey.api.util.ArticleLabelIdGenerator;
 import com.codyssey.api.util.UrlSlugGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of ArticleService interface
+ * Implementation of ArticleService
+ * <p>
+ * Provides article management functionality including
+ * creation, retrieval, updating, and deletion with comprehensive search capabilities.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class ArticleServiceImpl implements ArticleService {
 
     private final ArticleRepository articleRepository;
     private final ArticleLabelRepository articleLabelRepository;
     private final LabelRepository labelRepository;
+    private final UserRepository userRepository;
+    private final SourceRepository sourceRepository;
 
     @Override
     public ArticleDto createArticle(ArticleCreateDto createDto) {
         log.info("Creating new article with title: {}", createDto.getTitle());
 
-        // Validate article type
-        Article.ArticleType articleType = parseArticleType(createDto.getArticleType());
-        
-        // Check for duplicate title within same type
-        if (articleRepository.existsByTitleAndArticleType(createDto.getTitle(), articleType)) {
-            throw new DuplicateResourceException("Article with title '" + createDto.getTitle() + 
-                "' already exists for type " + articleType);
+        // Validate source if provided
+        Source source = null;
+        if (createDto.getSourceId() != null && !createDto.getSourceId().trim().isEmpty()) {
+            source = sourceRepository.findByIdAndNotDeleted(createDto.getSourceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Source not found with ID: " + createDto.getSourceId()));
         }
 
-        // Generate ID and URL slug
-        String articleId = ArticleIdGenerator.generateArticleId();
-        String urlSlug = UrlSlugGenerator.generateSlug(createDto.getTitle());
-        
-        // Ensure URL slug uniqueness
-        urlSlug = ensureUniqueUrlSlug(urlSlug);
+        // Validate user if provided
+        User createdByUser = null;
+        if (createDto.getCreatedByUserId() != null && !createDto.getCreatedByUserId().trim().isEmpty()) {
+            createdByUser = userRepository.findByIdAndNotDeleted(createDto.getCreatedByUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + createDto.getCreatedByUserId()));
+        }
 
-        // Create article entity
+        // Check for duplicate title within source
+        if (source != null) {
+            if (articleRepository.existsByTitleAndSourceId(createDto.getTitle(), source.getId())) {
+                throw new DuplicateResourceException("Article with title '" + createDto.getTitle() + 
+                        "' already exists for source: " + source.getName());
+            }
+        }
+
+        // Create the article entity
         Article article = new Article();
-        article.setId(articleId);
         article.setTitle(createDto.getTitle());
         article.setShortDescription(createDto.getShortDescription());
-        article.setContent(createDto.getContent());
-        article.setArticleType(articleType);
-        article.setStatus(Article.ArticleStatus.DRAFT);
-        article.setUrlSlug(urlSlug);
-        article.setContentUrl(createDto.getContentUrl());
-        article.setReadingTimeMinutes(createDto.getReadingTimeMinutes());
-        article.setMetaTitle(createDto.getMetaTitle());
-        article.setMetaDescription(createDto.getMetaDescription());
-        article.setMetaKeywords(createDto.getMetaKeywords());
-        article.setCreatedAt(LocalDateTime.now());
-        article.setUpdatedAt(LocalDateTime.now());
-
-        // Set labels if provided
-        if (createDto.getCategoryLabelId() != null) {
-            Label categoryLabel = labelRepository.findByIdAndNotDeleted(createDto.getCategoryLabelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category label not found"));
-            article.setCategoryLabel(categoryLabel);
-        }
-
-        if (createDto.getDifficultyLabelId() != null) {
-            Label difficultyLabel = labelRepository.findByIdAndNotDeleted(createDto.getDifficultyLabelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Difficulty label not found"));
-            article.setDifficultyLabel(difficultyLabel);
-        }
+        article.setFilePath(createDto.getFilePath());
+        article.setSource(source);
+        article.setOriginalUrl(createDto.getOriginalUrl());
+        article.setStatus(Article.ArticleStatus.valueOf(createDto.getStatus()));
+        article.setCreatedByUser(createdByUser);
+        
+        // Generate unique URL slug
+        String sourceCode = source != null ? source.getCode() : "";
+        String baseSlug = UrlSlugGenerator.generateArticleSlug(createDto.getTitle(), sourceCode);
+        String uniqueSlug = generateUniqueSlug(baseSlug);
+        article.setUrlSlug(uniqueSlug);
 
         Article savedArticle = articleRepository.save(article);
         log.info("Successfully created article with ID: {}", savedArticle.getId());
@@ -96,7 +94,7 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(readOnly = true)
     public List<ArticleSummaryDto> getAllArticles() {
-        log.debug("Fetching all articles");
+        log.info("Retrieving all articles");
         List<Article> articles = articleRepository.findByDeletedFalse();
         return articles.stream()
                 .map(this::convertToSummaryDto)
@@ -106,97 +104,144 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(readOnly = true)
     public Optional<ArticleDto> getArticleById(String id) {
-        log.debug("Fetching article by ID: {}", id);
-        return articleRepository.findByIdAndNotDeleted(id)
-                .map(this::convertToDto);
+        log.info("Retrieving article by ID: {}", id);
+        
+        // First get the basic article
+        Optional<Article> articleOpt = articleRepository.findByIdAndNotDeleted(id);
+        if (articleOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        Article article = articleOpt.get();
+        
+        // Load labels separately to avoid potential fetch issues
+        List<ArticleLabel> articleLabels = articleLabelRepository.findByArticleId(id);
+        
+        // Manually set the loaded collections
+        article.setArticleLabels(articleLabels);
+        
+        return Optional.of(convertToDto(article));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<ArticleDto> getArticleByUrlSlug(String urlSlug) {
-        log.debug("Fetching article by URL slug: {}", urlSlug);
-        return articleRepository.findByUrlSlugAndDeletedFalse(urlSlug)
-                .map(this::convertToDto);
+        log.info("Retrieving article by URL slug: {}", urlSlug);
+        
+        // First get the basic article
+        Optional<Article> articleOpt = articleRepository.findByUrlSlug(urlSlug);
+        if (articleOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        Article article = articleOpt.get();
+        
+        // Load labels separately
+        List<ArticleLabel> articleLabels = articleLabelRepository.findByArticleId(article.getId());
+        
+        // Manually set the loaded collections
+        article.setArticleLabels(articleLabels);
+        
+        return Optional.of(convertToDto(article));
     }
 
     @Override
     public ArticleDto updateArticle(String id, ArticleUpdateDto updateDto) {
         log.info("Updating article with ID: {}", id);
-        
+
         Article article = articleRepository.findByIdAndNotDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Article not found with ID: " + id));
 
-        updateArticleFields(article, updateDto);
-        Article updatedArticle = articleRepository.save(article);
-        
-        log.info("Successfully updated article with ID: {}", id);
-        return convertToDto(updatedArticle);
+        // Update fields if provided
+        if (updateDto.getTitle() != null) {
+            article.setTitle(updateDto.getTitle());
+        }
+        if (updateDto.getShortDescription() != null) {
+            article.setShortDescription(updateDto.getShortDescription());
+        }
+        if (updateDto.getFilePath() != null) {
+            article.setFilePath(updateDto.getFilePath());
+        }
+        if (updateDto.getSourceId() != null) {
+            Source source = sourceRepository.findByIdAndNotDeleted(updateDto.getSourceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Source not found with ID: " + updateDto.getSourceId()));
+            article.setSource(source);
+        }
+        if (updateDto.getOriginalUrl() != null) {
+            article.setOriginalUrl(updateDto.getOriginalUrl());
+        }
+        if (updateDto.getStatus() != null) {
+            article.setStatus(Article.ArticleStatus.valueOf(updateDto.getStatus()));
+        }
+
+        // Regenerate URL slug if title was updated
+        if (updateDto.getTitle() != null) {
+            String sourceCode = article.getSource() != null ? article.getSource().getCode() : "";
+            String baseSlug = UrlSlugGenerator.generateArticleSlug(updateDto.getTitle(), sourceCode);
+            String uniqueSlug = generateUniqueSlug(baseSlug, article.getId());
+            article.setUrlSlug(uniqueSlug);
+        }
+
+        Article savedArticle = articleRepository.save(article);
+        log.info("Successfully updated article with ID: {}", savedArticle.getId());
+
+        return convertToDto(savedArticle);
     }
 
     @Override
     public ArticleDto updateArticleByUrlSlug(String urlSlug, ArticleUpdateDto updateDto) {
         log.info("Updating article with URL slug: {}", urlSlug);
-        
-        Article article = articleRepository.findByUrlSlugAndDeletedFalse(urlSlug)
+
+        Article article = articleRepository.findByUrlSlug(urlSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Article not found with URL slug: " + urlSlug));
 
-        updateArticleFields(article, updateDto);
-        Article updatedArticle = articleRepository.save(article);
-        
-        log.info("Successfully updated article with URL slug: {}", urlSlug);
-        return convertToDto(updatedArticle);
+        return updateArticle(article.getId(), updateDto);
     }
 
     @Override
     public void deleteArticle(String id) {
         log.info("Soft deleting article with ID: {}", id);
-        
+
         Article article = articleRepository.findByIdAndNotDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Article not found with ID: " + id));
 
         article.setDeleted(true);
-        article.setUpdatedAt(LocalDateTime.now());
         articleRepository.save(article);
-        
+
         log.info("Successfully soft deleted article with ID: {}", id);
     }
 
     @Override
     public void deleteArticleByUrlSlug(String urlSlug) {
         log.info("Soft deleting article with URL slug: {}", urlSlug);
-        
-        Article article = articleRepository.findByUrlSlugAndDeletedFalse(urlSlug)
+
+        Article article = articleRepository.findByUrlSlug(urlSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Article not found with URL slug: " + urlSlug));
 
-        article.setDeleted(true);
-        article.setUpdatedAt(LocalDateTime.now());
-        articleRepository.save(article);
-        
-        log.info("Successfully soft deleted article with URL slug: {}", urlSlug);
+        deleteArticle(article.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ArticleSummaryDto> getArticlesWithPagination(Pageable pageable) {
-        log.debug("Fetching articles with pagination: {}", pageable);
-        Page<Article> articlePage = articleRepository.findByDeletedFalse(pageable);
-        return articlePage.map(this::convertToSummaryDto);
+        log.info("Retrieving articles with pagination");
+        Page<Article> articles = articleRepository.findArticlesWithPagination(pageable);
+        return articles.map(this::convertToSummaryDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ArticleSummaryDto> searchArticles(String searchTerm, Pageable pageable) {
-        log.debug("Searching articles with term: {} and pagination: {}", searchTerm, pageable);
-        Page<Article> articlePage = articleRepository.searchByTitleOrDescription(searchTerm, pageable);
-        return articlePage.map(this::convertToSummaryDto);
+        log.info("Searching articles with term: {}", searchTerm);
+        Page<Article> articles = articleRepository.searchByTitleOrDescription(searchTerm, pageable);
+        return articles.map(this::convertToSummaryDto);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> getArticlesByType(String articleType) {
-        log.debug("Fetching articles by type: {}", articleType);
-        Article.ArticleType type = parseArticleType(articleType);
-        List<Article> articles = articleRepository.findByArticleTypeAndDeletedFalse(type);
+    public List<ArticleSummaryDto> getArticlesBySource(String sourceId) {
+        log.info("Retrieving articles by source ID: {}", sourceId);
+        List<Article> articles = articleRepository.findBySourceId(sourceId);
         return articles.stream()
                 .map(this::convertToSummaryDto)
                 .collect(Collectors.toList());
@@ -204,48 +249,8 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> getArticlesByCategoryLabelId(String categoryLabelId) {
-        log.debug("Fetching articles by category label ID: {}", categoryLabelId);
-        List<Article> articles = articleRepository.findByCategoryLabelId(categoryLabelId);
-        return articles.stream()
-                .map(this::convertToSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> getArticlesByCategoryLabelSlug(String categoryLabelSlug) {
-        log.debug("Fetching articles by category label slug: {}", categoryLabelSlug);
-        List<Article> articles = articleRepository.findByCategoryLabelSlug(categoryLabelSlug);
-        return articles.stream()
-                .map(this::convertToSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> getArticlesByDifficultyLabelId(String difficultyLabelId) {
-        log.debug("Fetching articles by difficulty label ID: {}", difficultyLabelId);
-        List<Article> articles = articleRepository.findByDifficultyLabelId(difficultyLabelId);
-        return articles.stream()
-                .map(this::convertToSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> getArticlesByDifficultyLabelSlug(String difficultyLabelSlug) {
-        log.debug("Fetching articles by difficulty label slug: {}", difficultyLabelSlug);
-        List<Article> articles = articleRepository.findByDifficultyLabelSlug(difficultyLabelSlug);
-        return articles.stream()
-                .map(this::convertToSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> getArticlesByLabelId(String labelId) {
-        log.debug("Fetching articles by label ID: {}", labelId);
+    public List<ArticleSummaryDto> getArticlesByLabel(String labelId) {
+        log.info("Retrieving articles by label ID: {}", labelId);
         List<Article> articles = articleRepository.findByLabelId(labelId);
         return articles.stream()
                 .map(this::convertToSummaryDto)
@@ -255,350 +260,352 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(readOnly = true)
     public List<ArticleSummaryDto> getArticlesByLabelSlug(String labelSlug) {
-        log.debug("Fetching articles by label slug: {}", labelSlug);
-        List<Article> articles = articleRepository.findByLabelSlug(labelSlug);
+        log.info("Retrieving articles by label slug: {}", labelSlug);
+        
+        Label label = labelRepository.findByUrlSlug(labelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with URL slug: " + labelSlug));
+        
+        return getArticlesByLabel(label.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ArticleSummaryDto> getArticlesBySourceSlug(String sourceSlug) {
+        log.info("Retrieving articles by source slug: {}", sourceSlug);
+        
+        Source source = sourceRepository.findByUrlSlug(sourceSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Source not found with URL slug: " + sourceSlug));
+        
+        return getArticlesBySource(source.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ArticleSummaryDto> searchWithFilters(List<String> sourceIds, List<String> labelIds, String searchTerm) {
+        log.info("Searching articles with filters - sources: {}, labels: {}, term: {}", sourceIds, labelIds, searchTerm);
+        
+        List<Article> articles = articleRepository.findWithFilters(sourceIds, labelIds, searchTerm);
         return articles.stream()
                 .map(this::convertToSummaryDto)
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public boolean createArticleLabel(ArticleLabelCreateDto createDto) {
-        log.info("Creating article-label relationship: article={}, label={}", 
-                createDto.getArticleId(), createDto.getLabelId());
-
-        Article article = articleRepository.findByIdAndNotDeleted(createDto.getArticleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Article not found"));
-
-        Label label = labelRepository.findByIdAndNotDeleted(createDto.getLabelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Label not found"));
-
-        // Check if relationship already exists
-        boolean exists = articleLabelRepository.existsByArticleIdAndLabelId(
-                createDto.getArticleId(), createDto.getLabelId());
-        if (exists) {
-            throw new DuplicateResourceException("Article-Label relationship already exists");
-        }
-
-        String articleLabelId = ArticleLabelIdGenerator.generateArticleLabelId();
-        ArticleLabel articleLabel = new ArticleLabel(articleLabelId, article, label);
-        
-        if (createDto.getDisplayOrder() != null) {
-            articleLabel.setDisplayOrder(createDto.getDisplayOrder());
-        }
-        if (createDto.getIsPrimary() != null) {
-            articleLabel.setIsPrimary(createDto.getIsPrimary());
-        }
-
-        articleLabel.setCreatedAt(LocalDateTime.now());
-        articleLabel.setUpdatedAt(LocalDateTime.now());
-
-        articleLabelRepository.save(articleLabel);
-        log.info("Successfully created article-label relationship with ID: {}", articleLabelId);
-        
-        return true;
-    }
-
-    @Override
-    public int createArticleLabels(ArticleLabelBulkCreateDto bulkCreateDto) {
-        log.info("Creating bulk article-label relationships for article: {}", bulkCreateDto.getArticleId());
-
-        Article article = articleRepository.findByIdAndNotDeleted(bulkCreateDto.getArticleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Article not found"));
-
-        int createdCount = 0;
-        for (String labelId : bulkCreateDto.getLabelIds()) {
-            Label label = labelRepository.findByIdAndNotDeleted(labelId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Label not found: " + labelId));
-
-            // Skip if relationship already exists
-            if (articleLabelRepository.existsByArticleIdAndLabelId(bulkCreateDto.getArticleId(), labelId)) {
-                log.warn("Article-Label relationship already exists: article={}, label={}", 
-                        bulkCreateDto.getArticleId(), labelId);
-                continue;
-            }
-
-            String articleLabelId = ArticleLabelIdGenerator.generateArticleLabelId();
-            ArticleLabel articleLabel = new ArticleLabel(articleLabelId, article, label);
-            articleLabel.setCreatedAt(LocalDateTime.now());
-            articleLabel.setUpdatedAt(LocalDateTime.now());
-
-            articleLabelRepository.save(articleLabel);
-            createdCount++;
-        }
-
-        log.info("Successfully created {} article-label relationships", createdCount);
-        return createdCount;
-    }
-
-    @Override
-    public boolean removeArticleLabel(String articleId, String labelId) {
-        log.info("Removing article-label relationship: article={}, label={}", articleId, labelId);
-
-        Optional<ArticleLabel> articleLabelOpt = articleLabelRepository.findByArticleIdAndLabelId(articleId, labelId);
-        if (articleLabelOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Article-Label relationship not found");
-        }
-
-        articleLabelRepository.delete(articleLabelOpt.get());
-        log.info("Successfully removed article-label relationship");
-        
-        return true;
     }
 
     @Override
     @Transactional(readOnly = true)
     public ArticleStatisticsDto getArticleStatistics() {
-        log.debug("Fetching article statistics");
-
-        List<Article> allArticles = articleRepository.findByDeletedFalse();
-        long totalArticles = allArticles.size();
-
-        Map<String, Long> articlesByType = allArticles.stream()
-                .collect(Collectors.groupingBy(
-                        article -> article.getArticleType().name(),
-                        Collectors.counting()));
-
-        Map<String, Long> articlesByStatus = allArticles.stream()
-                .collect(Collectors.groupingBy(
-                        article -> article.getStatus().name(),
-                        Collectors.counting()));
-
-        // Get difficulty distribution
-        Map<String, Long> articlesByDifficulty = allArticles.stream()
-                .filter(article -> article.getDifficultyLabel() != null)
-                .collect(Collectors.groupingBy(
-                        article -> article.getDifficultyLabel().getName(),
-                        Collectors.counting()));
-
+        log.info("Generating article statistics");
+        
         ArticleStatisticsDto stats = new ArticleStatisticsDto();
-        stats.setTotalArticles(totalArticles);
-        stats.setArticlesByType(articlesByType);
-        stats.setArticlesByStatus(articlesByStatus);
-        stats.setArticlesByDifficulty(articlesByDifficulty);
-
+        
+        // Count total articles
+        List<Article> allArticles = articleRepository.findByDeletedFalse();
+        stats.setTotalArticles((long) allArticles.size());
+        stats.setActiveArticles(articleRepository.countByStatus(Article.ArticleStatus.ACTIVE));
+        stats.setDraftArticles(articleRepository.countByStatus(Article.ArticleStatus.DRAFT));
+        stats.setDeprecatedArticles(articleRepository.countByStatus(Article.ArticleStatus.DEPRECATED));
+        
+        // Count total tags (labels used in articles)
+        List<ArticleLabel> allArticleLabels = articleLabelRepository.findByDeletedFalse();
+        Set<String> uniqueLabelIds = allArticleLabels.stream()
+                .map(al -> al.getLabel().getId())
+                .collect(Collectors.toSet());
+        stats.setTotalTags((long) uniqueLabelIds.size());
+        
+        // Find most used tag
+        Map<String, Long> labelCounts = allArticleLabels.stream()
+                .collect(Collectors.groupingBy(
+                    al -> al.getLabel().getName(),
+                    Collectors.counting()
+                ));
+        
+        Optional<Map.Entry<String, Long>> mostUsedEntry = labelCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue());
+        
+        if (mostUsedEntry.isPresent()) {
+            stats.setMostUsedTag(mostUsedEntry.get().getKey());
+        }
+        
+        // Count articles with and without source
+        long articlesWithSource = allArticles.stream()
+                .filter(a -> a.getSource() != null)
+                .count();
+        stats.setArticlesWithSource(articlesWithSource);
+        stats.setArticlesWithoutSource(stats.getTotalArticles() - articlesWithSource);
+        
         return stats;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ArticleSummaryDto> getRecentArticles(Pageable pageable) {
-        log.debug("Fetching recent articles with pagination: {}", pageable);
-        Page<Article> articlePage = articleRepository.findRecentArticles(pageable);
-        return articlePage.map(this::convertToSummaryDto);
+    public boolean checkTitleAvailability(String title, String sourceId) {
+        log.info("Checking title availability: {} for source: {}", title, sourceId);
+        return !articleRepository.existsByTitleAndSourceId(title, sourceId);
+    }
+
+    @Override
+    public void addLabelToArticle(ArticleLabelCreateDto createDto) {
+        log.info("Adding label {} to article {}", createDto.getLabelId(), createDto.getArticleId());
+        
+        // Validate article
+        Article article = articleRepository.findByIdAndNotDeleted(createDto.getArticleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Article not found with ID: " + createDto.getArticleId()));
+        
+        // Validate label
+        Label label = labelRepository.findByIdAndNotDeleted(createDto.getLabelId())
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with ID: " + createDto.getLabelId()));
+        
+        // Check if relationship already exists
+        if (articleLabelRepository.existsByArticleIdAndLabelId(createDto.getArticleId(), createDto.getLabelId())) {
+            throw new DuplicateResourceException("Label is already associated with this article");
+        }
+        
+        // Create the relationship
+        ArticleLabel articleLabel = new ArticleLabel(article, label, createDto.getRelevanceScore(), createDto.getIsPrimary());
+        articleLabel.setNotes(createDto.getNotes());
+        
+        articleLabelRepository.save(articleLabel);
+        log.info("Successfully added label to article");
+    }
+
+    @Override
+    public void addLabelsToArticle(ArticleLabelBulkCreateDto bulkCreateDto) {
+        log.info("Adding {} labels to articles in bulk", bulkCreateDto.getArticleLabels().size());
+        
+        for (ArticleLabelCreateDto createDto : bulkCreateDto.getArticleLabels()) {
+            addLabelToArticle(createDto);
+        }
+        
+        log.info("Successfully added labels to articles in bulk");
+    }
+
+    @Override
+    public void removeLabelFromArticle(String articleId, String labelId) {
+        log.info("Removing label {} from article {}", labelId, articleId);
+        
+        ArticleLabel articleLabel = articleLabelRepository.findByArticleIdAndLabelId(articleId, labelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Article-label relationship not found"));
+        
+        articleLabel.setDeleted(true);
+        articleLabelRepository.save(articleLabel);
+        
+        log.info("Successfully removed label from article");
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ArticleSummaryDto> searchWithFilters(List<String> articleTypes,
-                                                    List<String> categoryLabelIds,
-                                                    List<String> difficultyLabelIds,
-                                                    List<String> labelIds,
-                                                    String searchTerm) {
-        log.debug("Searching articles with filters");
-
-        List<Article.ArticleType> types = null;
-        if (articleTypes != null && !articleTypes.isEmpty()) {
-            types = articleTypes.stream()
-                    .map(this::parseArticleType)
-                    .collect(Collectors.toList());
+    public String getArticleContent(String id) throws Exception {
+        log.info("Fetching content for article ID: {}", id);
+        
+        // First get the article to retrieve the file path
+        Article article = articleRepository.findByIdAndNotDeleted(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Article not found with ID: " + id));
+        
+        String filePath = article.getFilePath();
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalStateException("No file path found for article ID: " + id);
         }
+        
+        return readFileContent(filePath);
+    }
 
-        List<Article> articles = articleRepository.searchWithFilters(
-                types, categoryLabelIds, difficultyLabelIds, labelIds, searchTerm);
+    @Override
+    @Transactional(readOnly = true)
+    public String getArticleContentByUrlSlug(String urlSlug) throws Exception {
+        log.info("Fetching content for article URL slug: {}", urlSlug);
+        
+        Article article = articleRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Article not found with URL slug: " + urlSlug));
+        
+        return getArticleContent(article.getId());
+    }
 
-        return articles.stream()
-                .map(this::convertToSummaryDto)
+    @Override
+    @Transactional(readOnly = true)
+    public List<ArticleLabelReferenceDto> getArticleLabels(String articleId) {
+        log.info("Retrieving labels for article ID: {}", articleId);
+        
+        List<ArticleLabel> articleLabels = articleLabelRepository.findByArticleIdWithLabelDetails(articleId);
+        return articleLabels.stream()
+                .map(this::convertToArticleLabelReferenceDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public void incrementViewCount(String id) {
-        Article article = articleRepository.findByIdAndNotDeleted(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Article not found"));
+    @Transactional(readOnly = true)
+    public List<ArticleLabelReferenceDto> getPrimaryArticleLabels(String articleId) {
+        log.info("Retrieving primary labels for article ID: {}", articleId);
         
-        article.setViewCount(article.getViewCount() + 1);
-        article.setUpdatedAt(LocalDateTime.now());
-        articleRepository.save(article);
+        List<ArticleLabel> primaryLabels = articleLabelRepository.findPrimaryLabelsByArticleId(articleId);
+        return primaryLabels.stream()
+                .map(this::convertToArticleLabelReferenceDto)
+                .collect(Collectors.toList());
     }
 
-    @Override
-    public void incrementLikeCount(String id) {
-        Article article = articleRepository.findByIdAndNotDeleted(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Article not found"));
-        
-        article.setLikeCount(article.getLikeCount() + 1);
-        article.setUpdatedAt(LocalDateTime.now());
-        articleRepository.save(article);
+    // Helper methods
+    private String generateUniqueSlug(String baseSlug) {
+        return generateUniqueSlug(baseSlug, null);
     }
 
-    @Override
-    public void incrementBookmarkCount(String id) {
-        Article article = articleRepository.findByIdAndNotDeleted(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Article not found"));
+    private String generateUniqueSlug(String baseSlug, String excludeId) {
+        String uniqueSlug = baseSlug;
+        int counter = 1;
         
-        article.setBookmarkCount(article.getBookmarkCount() + 1);
-        article.setUpdatedAt(LocalDateTime.now());
-        articleRepository.save(article);
-    }
-
-    @Override
-    public ArticleDto convertToDto(Article article) {
-        if (article == null) {
-            return null;
+        while (true) {
+            boolean exists;
+            if (excludeId != null) {
+                exists = articleRepository.existsByUrlSlugAndIdNot(uniqueSlug, excludeId);
+            } else {
+                exists = articleRepository.existsByUrlSlug(uniqueSlug);
+            }
+            
+            if (!exists) {
+                break;
+            }
+            
+            uniqueSlug = baseSlug + "-" + counter;
+            counter++;
         }
+        
+        return uniqueSlug;
+    }
 
+    private String readFileContent(String filePath) throws Exception {
+        try {
+            // Remove "src/main/resources/" prefix if present, as ClassPathResource looks in classpath
+            String resourcePath = filePath;
+            if (resourcePath.startsWith("src/main/resources/")) {
+                resourcePath = resourcePath.substring("src/main/resources/".length());
+            }
+            
+            // Use ClassPathResource to read from resources folder
+            ClassPathResource resource = new ClassPathResource(resourcePath);
+            if (!resource.exists()) {
+                throw new FileNotFoundException("Article file not found: " + filePath);
+            }
+            
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            log.error("Error reading article content from file: {}", filePath, e);
+            throw new Exception("Failed to read article content: " + e.getMessage(), e);
+        }
+    }
+
+    // Conversion methods
+    private ArticleDto convertToDto(Article article) {
         ArticleDto dto = new ArticleDto();
         dto.setId(article.getId());
         dto.setTitle(article.getTitle());
         dto.setShortDescription(article.getShortDescription());
-        dto.setArticleType(article.getArticleType().name());
-        dto.setStatus(article.getStatus().name());
-        dto.setReadingTimeMinutes(article.getReadingTimeMinutes());
-        dto.setContentUrl(article.getContentUrl());
-        dto.setVersion(article.getVersion());
-
-        // Set category labels
-        if (article.getCategoryLabel() != null) {
-            List<ArticleLabelReferenceDto> categoryLabels = new ArrayList<>();
-            ArticleLabelReferenceDto categoryRef = new ArticleLabelReferenceDto();
-            categoryRef.setId(article.getCategoryLabel().getId());
-            categoryRef.setName(article.getCategoryLabel().getName());
-            categoryRef.setUrlSlug(article.getCategoryLabel().getUrlSlug());
-            categoryLabels.add(categoryRef);
-            dto.setCategoryLabels(categoryLabels);
+        
+        if (article.getSource() != null) {
+            SourceSummaryDto sourceDto = new SourceSummaryDto();
+            sourceDto.setName(article.getSource().getName());
+            sourceDto.setQuestionUri("/api/v1/articles/source/" + article.getSource().getUrlSlug());
+            dto.setSource(sourceDto);
         }
+        
+        dto.setOriginalUrl(article.getOriginalUrl());
+        dto.setStatus(article.getStatus().toString());
+        dto.setUri("/api/v1/articles/" + article.getUrlSlug());
+        
+        // Use URL slug if available, otherwise fallback to ID for content URL
+        String identifier = article.getUrlSlug() != null ? article.getUrlSlug() : article.getId();
+        dto.setContentUrl("/api/v1/articles/" + identifier + "/content");
+        
+        if (article.getCreatedByUser() != null) {
+            UserDto userDto = new UserDto();
+            userDto.setId(article.getCreatedByUser().getId());
+            userDto.setUsername(article.getCreatedByUser().getUsername());
+            userDto.setEmail(article.getCreatedByUser().getEmail());
+            dto.setCreatedByUser(userDto);
+        }
+        
+        dto.setVersion(article.getVersion());
+        dto.setCreatedAt(article.getCreatedAt());
+        dto.setUpdatedAt(article.getUpdatedAt());
 
-        // Set difficulty label
-        if (article.getDifficultyLabel() != null) {
-            ArticleLabelReferenceDto difficultyRef = new ArticleLabelReferenceDto();
-            difficultyRef.setId(article.getDifficultyLabel().getId());
-            difficultyRef.setName(article.getDifficultyLabel().getName());
-            difficultyRef.setUrlSlug(article.getDifficultyLabel().getUrlSlug());
-            dto.setDifficultyLabel(difficultyRef);
+        // Populate associated labels/tags
+        if (article.getArticleLabels() != null && !article.getArticleLabels().isEmpty()) {
+            List<LabelSummaryDto> tags = article.getArticleLabels().stream()
+                    .filter(al -> !al.getDeleted())
+                    .map(al -> {
+                        LabelSummaryDto tagDto = new LabelSummaryDto();
+                        tagDto.setId(al.getLabel().getId());
+                        tagDto.setName(al.getLabel().getName());
+                        tagDto.setCategoryCode(al.getLabel().getCategory().getCode());
+                        tagDto.setQuestionUri("/api/v1/articles/label/" + al.getLabel().getUrlSlug());
+                        return tagDto;
+                    })
+                    .toList();
+            dto.setTags(tags);
         }
 
         return dto;
     }
 
-    @Override
-    public ArticleSummaryDto convertToSummaryDto(Article article) {
-        if (article == null) {
-            return null;
-        }
-
+    private ArticleSummaryDto convertToSummaryDto(Article article) {
         ArticleSummaryDto dto = new ArticleSummaryDto();
         dto.setId(article.getId());
         dto.setTitle(article.getTitle());
         dto.setShortDescription(article.getShortDescription());
-        dto.setArticleType(article.getArticleType().name());
-        dto.setStatus(article.getStatus().name());
-        dto.setReadingTimeMinutes(article.getReadingTimeMinutes());
-        dto.setViewCount(article.getViewCount());
-        dto.setLikeCount(article.getLikeCount());
-
-        // Set category labels
-        if (article.getCategoryLabel() != null) {
-            List<ArticleLabelReferenceDto> categoryLabels = new ArrayList<>();
-            ArticleLabelReferenceDto categoryRef = new ArticleLabelReferenceDto();
-            categoryRef.setId(article.getCategoryLabel().getId());
-            categoryRef.setName(article.getCategoryLabel().getName());
-            categoryRef.setUrlSlug(article.getCategoryLabel().getUrlSlug());
-            categoryLabels.add(categoryRef);
-            dto.setCategoryLabels(categoryLabels);
+        
+        if (article.getSource() != null) {
+            dto.setSourceName(article.getSource().getName());
         }
+        dto.setStatus(article.getStatus().toString());
+        dto.setUri("/api/v1/articles/" + article.getUrlSlug());
+        
+        // Use URL slug if available, otherwise fallback to ID for content URL
+        String identifier = article.getUrlSlug() != null ? article.getUrlSlug() : article.getId();
+        dto.setContentUrl("/api/v1/articles/" + identifier + "/content");
+        
+        dto.setCreatedAt(article.getCreatedAt());
 
-        // Set difficulty label
-        if (article.getDifficultyLabel() != null) {
-            ArticleLabelReferenceDto difficultyRef = new ArticleLabelReferenceDto();
-            difficultyRef.setId(article.getDifficultyLabel().getId());
-            difficultyRef.setName(article.getDifficultyLabel().getName());
-            difficultyRef.setUrlSlug(article.getDifficultyLabel().getUrlSlug());
-            dto.setDifficultyLabel(difficultyRef);
+        // Get primary tags for summary
+        if (article.getArticleLabels() != null && !article.getArticleLabels().isEmpty()) {
+            List<LabelSummaryDto> primaryTags = article.getArticleLabels().stream()
+                    .filter(al -> !al.getDeleted() && (al.getIsPrimary() || al.getRelevanceScore() >= 8))
+                    .sorted((al1, al2) -> {
+                        // Sort by primary first, then by relevance score descending
+                        if (al1.getIsPrimary() && !al2.getIsPrimary()) return -1;
+                        if (!al1.getIsPrimary() && al2.getIsPrimary()) return 1;
+                        return al2.getRelevanceScore().compareTo(al1.getRelevanceScore());
+                    })
+                    .limit(5) // Limit to top 5 tags
+                    .map(al -> {
+                        LabelSummaryDto tagDto = new LabelSummaryDto();
+                        tagDto.setId(al.getLabel().getId());
+                        tagDto.setName(al.getLabel().getName());
+                        tagDto.setCategoryCode(al.getLabel().getCategory().getCode());
+                        tagDto.setQuestionUri("/api/v1/articles/label/" + al.getLabel().getUrlSlug());
+                        return tagDto;
+                    })
+                    .toList();
+            dto.setPrimaryTags(primaryTags);
         }
 
         return dto;
     }
 
-    // Helper methods
-
-    private Article.ArticleType parseArticleType(String articleType) {
-        try {
-            return Article.ArticleType.valueOf(articleType.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid article type: " + articleType);
-        }
-    }
-
-    private String ensureUniqueUrlSlug(String baseSlug) {
-        String slug = baseSlug;
-        int counter = 1;
+    private ArticleLabelReferenceDto convertToArticleLabelReferenceDto(ArticleLabel articleLabel) {
+        ArticleLabelReferenceDto dto = new ArticleLabelReferenceDto();
+        dto.setId(articleLabel.getId());
+        dto.setArticleId(articleLabel.getArticle().getId());
+        dto.setRelevanceScore(articleLabel.getRelevanceScore());
+        dto.setIsPrimary(articleLabel.getIsPrimary());
+        dto.setNotes(articleLabel.getNotes());
         
-        while (articleRepository.findByUrlSlugAndDeletedFalse(slug).isPresent()) {
-            slug = baseSlug + "-" + counter;
-            counter++;
+        if (articleLabel.getLabel() != null) {
+            LabelSummaryDto labelDto = new LabelSummaryDto();
+            labelDto.setId(articleLabel.getLabel().getId());
+            labelDto.setName(articleLabel.getLabel().getName());
+            labelDto.setCategoryCode(articleLabel.getLabel().getCategory().getCode());
+            labelDto.setQuestionUri("/api/v1/articles/label/" + articleLabel.getLabel().getUrlSlug());
+            dto.setLabel(labelDto);
         }
         
-        return slug;
-    }
-
-    private void updateArticleFields(Article article, ArticleUpdateDto updateDto) {
-        if (updateDto.getTitle() != null) {
-            // Check for duplicate title within same type (excluding current article)
-            if (articleRepository.existsByTitleAndArticleTypeExcludingId(
-                    updateDto.getTitle(), article.getArticleType(), article.getId())) {
-                throw new DuplicateResourceException("Article with title '" + updateDto.getTitle() + 
-                    "' already exists for type " + article.getArticleType());
-            }
-            article.setTitle(updateDto.getTitle());
-            
-            // Update URL slug if title changed
-            String newSlug = UrlSlugGenerator.generateSlug(updateDto.getTitle());
-            if (!newSlug.equals(article.getUrlSlug())) {
-                article.setUrlSlug(ensureUniqueUrlSlug(newSlug));
-            }
-        }
-
-        if (updateDto.getShortDescription() != null) {
-            article.setShortDescription(updateDto.getShortDescription());
-        }
-
-        if (updateDto.getContent() != null) {
-            article.setContent(updateDto.getContent());
-        }
-
-        if (updateDto.getArticleType() != null) {
-            article.setArticleType(parseArticleType(updateDto.getArticleType()));
-        }
-
-        if (updateDto.getStatus() != null) {
-            try {
-                article.setStatus(Article.ArticleStatus.valueOf(updateDto.getStatus().toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid article status: " + updateDto.getStatus());
-            }
-        }
-
-        if (updateDto.getContentUrl() != null) {
-            article.setContentUrl(updateDto.getContentUrl());
-        }
-
-        if (updateDto.getReadingTimeMinutes() != null) {
-            article.setReadingTimeMinutes(updateDto.getReadingTimeMinutes());
-        }
-
-        if (updateDto.getMetaTitle() != null) {
-            article.setMetaTitle(updateDto.getMetaTitle());
-        }
-
-        if (updateDto.getMetaDescription() != null) {
-            article.setMetaDescription(updateDto.getMetaDescription());
-        }
-
-        if (updateDto.getMetaKeywords() != null) {
-            article.setMetaKeywords(updateDto.getMetaKeywords());
-        }
-
-        article.setUpdatedAt(LocalDateTime.now());
+        return dto;
     }
 }

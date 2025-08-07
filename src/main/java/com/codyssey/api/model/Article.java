@@ -1,154 +1,125 @@
 package com.codyssey.api.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Entity representing an Article
+ * Article Entity
+ * <p>
+ * Represents educational articles about data structures, algorithms, and programming concepts
+ * with all associated metadata.
  */
 @Entity
-@Table(name = "articles")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Table(name = "articles",
+        indexes = {
+                @Index(name = "idx_article_source", columnList = "source_id"),
+                @Index(name = "idx_article_status", columnList = "status"),
+                @Index(name = "idx_article_created_by", columnList = "created_by_user_id"),
+                @Index(name = "idx_article_url_slug", columnList = "url_slug")
+        })
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Article extends BaseEntity {
 
+    /**
+     * Primary key for the entity - Article ID (ART-xxxxxx)
+     */
     @Id
-    @Column(name = "article_id", length = 50)
+    @GeneratedValue(generator = "article-id")
+    @GenericGenerator(name = "article-id", strategy = "com.codyssey.api.util.ArticleIdGenerator")
+    @Column(name = "id", length = 32)
     private String id;
 
-    @Column(name = "title", nullable = false, length = 200)
+    /**
+     * Article title
+     */
+    @NotBlank
+    @Size(max = 200)
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "short_description", length = 500)
+    /**
+     * Brief summary/description of the article
+     */
+    @Size(max = 500)
+    @Column(name = "short_description")
     private String shortDescription;
 
-    @Column(name = "content", columnDefinition = "TEXT")
-    private String content;
+    /**
+     * Path to the Markdown file containing the full article content
+     */
+    @NotBlank
+    @Size(max = 500)
+    @Column(name = "file_path", nullable = false)
+    private String filePath;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "article_type", nullable = false, length = 50)
-    private ArticleType articleType;
-
+    /**
+     * Source/platform of the article (Internal, External Blog, etc.) - links to Source entity
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_label_id")
-    private Label categoryLabel;
+    @JoinColumn(name = "source_id")
+    private Source source;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "difficulty_label_id")
-    private Label difficultyLabel;
+    /**
+     * URL to the original article if it's from an external source
+     */
+    @Size(max = 500)
+    @Column(name = "original_url")
+    private String originalUrl;
 
+    /**
+     * Article status (ACTIVE, DEPRECATED, DRAFT)
+     */
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 50)
-    private ArticleStatus status = ArticleStatus.DRAFT;
+    @Column(name = "status", nullable = false)
+    private ArticleStatus status = ArticleStatus.ACTIVE;
 
-    @Column(name = "url_slug", unique = true, length = 200)
-    private String urlSlug;
-
-    @Column(name = "content_url", length = 500)
-    private String contentUrl;
-
-    @Column(name = "reading_time_minutes")
-    private Integer readingTimeMinutes;
-
-    @Column(name = "view_count", nullable = false)
-    private Integer viewCount = 0;
-
-    @Column(name = "like_count", nullable = false)
-    private Integer likeCount = 0;
-
-    @Column(name = "bookmark_count", nullable = false)
-    private Integer bookmarkCount = 0;
-
-    // Note: version is inherited from BaseEntity as Long
-
-    @Column(name = "meta_title", length = 200)
-    private String metaTitle;
-
-    @Column(name = "meta_description", length = 500)
-    private String metaDescription;
-
-    @Column(name = "meta_keywords", length = 500)
-    private String metaKeywords;
-
+    /**
+     * User who created/added this article
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by_user_id")
-    private User updatedByUser;
-
-    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ArticleLabel> articleLabels = new ArrayList<>();
+    /**
+     * Associated labels/tags (Data Structures, Algorithms, Topics, etc.)
+     */
+    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ArticleLabel> articleLabels;
 
     /**
-     * Article types enum
+     * SEO-friendly URL slug for this article
      */
-    public enum ArticleType {
-        DATA_STRUCTURE,
-        ALGORITHM,
-        SYSTEM_DESIGN,
-        PROGRAMMING_CONCEPT,
-        INTERVIEW_GUIDE,
-        TUTORIAL,
-        REFERENCE
+    @Size(max = 300)
+    @Column(name = "url_slug", unique = true)
+    private String urlSlug;
+
+    /**
+     * Constructor with required fields
+     */
+    public Article(String title, String shortDescription, String filePath, Source source, User createdByUser) {
+        this.title = title;
+        this.shortDescription = shortDescription;
+        this.filePath = filePath;
+        this.source = source;
+        this.createdByUser = createdByUser;
+        this.status = ArticleStatus.ACTIVE;
     }
 
     /**
-     * Article status enum
+     * Article status enumeration
      */
     public enum ArticleStatus {
-        DRAFT,
-        REVIEW,
-        PUBLISHED,
-        ARCHIVED,
-        DEPRECATED
-    }
-
-    /**
-     * Helper method to add article label
-     */
-    public void addArticleLabel(ArticleLabel articleLabel) {
-        articleLabels.add(articleLabel);
-        articleLabel.setArticle(this);
-    }
-
-    /**
-     * Helper method to remove article label
-     */
-    public void removeArticleLabel(ArticleLabel articleLabel) {
-        articleLabels.remove(articleLabel);
-        articleLabel.setArticle(null);
-    }
-
-    /**
-     * Helper method to clear all article labels
-     */
-    public void clearArticleLabels() {
-        for (ArticleLabel articleLabel : new ArrayList<>(articleLabels)) {
-            removeArticleLabel(articleLabel);
-        }
-    }
-
-    @PrePersist
-    @PreUpdate
-    private void validateArticle() {
-        if (title != null) {
-            title = title.trim();
-        }
-        if (shortDescription != null) {
-            shortDescription = shortDescription.trim();
-        }
-        if (urlSlug != null) {
-            urlSlug = urlSlug.trim().toLowerCase();
-        }
+        ACTIVE, DEPRECATED, DRAFT
     }
 }

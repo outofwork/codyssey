@@ -1,7 +1,6 @@
 package com.codyssey.api.dto.article;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,26 +21,16 @@ public class ArticleCreateDto {
     @Size(max = 500, message = "Short description must not exceed 500 characters")
     private String shortDescription;
 
-    @NotNull(message = "Article type is required")
-    private String articleType; // DATA_STRUCTURE, ALGORITHM, SYSTEM_DESIGN
+    @NotBlank(message = "File path is required")
+    @Size(max = 500, message = "File path must not exceed 500 characters")
+    private String filePath;
 
-    private String categoryLabelId;
+    private String sourceId;
 
-    private String difficultyLabelId;
+    @Size(max = 500, message = "Original URL must not exceed 500 characters")
+    private String originalUrl;
 
     private String status = "ACTIVE";
 
     private String createdByUserId;
-
-    private Integer readingTimeMinutes;
-    
-    private String content;
-    
-    private String contentUrl;
-    
-    private String metaTitle;
-    
-    private String metaDescription;
-    
-    private String metaKeywords;
 }

@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data Transfer Object for updating an Article
+ * Data Transfer Object for updating an existing Article
  */
 @Data
 @NoArgsConstructor
@@ -19,23 +19,13 @@ public class ArticleUpdateDto {
     @Size(max = 500, message = "Short description must not exceed 500 characters")
     private String shortDescription;
 
-    private String articleType; // DATA_STRUCTURE, ALGORITHM, SYSTEM_DESIGN
+    @Size(max = 500, message = "File path must not exceed 500 characters")
+    private String filePath;
 
-    private String categoryLabelId;
+    private String sourceId;
 
-    private String difficultyLabelId;
+    @Size(max = 500, message = "Original URL must not exceed 500 characters")
+    private String originalUrl;
 
-    private String status; // ACTIVE, DRAFT, DEPRECATED
-
-    private Integer readingTimeMinutes;
-    
-    private String content;
-    
-    private String contentUrl;
-    
-    private String metaTitle;
-    
-    private String metaDescription;
-    
-    private String metaKeywords;
+    private String status;
 }

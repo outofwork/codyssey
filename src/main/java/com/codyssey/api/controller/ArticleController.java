@@ -1,383 +1,387 @@
 package com.codyssey.api.controller;
 
 import com.codyssey.api.dto.article.*;
+import com.codyssey.api.exception.ResourceNotFoundException;
 import com.codyssey.api.service.ArticleService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.codyssey.api.validation.ValidId;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * REST Controller for Article operations
+ * REST Controller for Article management
+ * <p>
+ * Provides comprehensive endpoints for creating, retrieving, updating, and deleting
+ * articles with advanced search and filtering capabilities.
  */
-@Slf4j
 @RestController
-@RequestMapping("/api/v1/articles")
+@RequestMapping("/v1/articles")
 @RequiredArgsConstructor
-@Tag(name = "Articles", description = "Article management endpoints")
+@Slf4j
+@Validated
 public class ArticleController {
 
     private final ArticleService articleService;
 
-    @Operation(summary = "Create a new article")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Article created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "409", description = "Article already exists")
-    })
+    /**
+     * Create a new article
+     * 
+     * @param createDto article creation data
+     * @return created article with HTTP 201 status
+     */
     @PostMapping
     public ResponseEntity<ArticleDto> createArticle(@Valid @RequestBody ArticleCreateDto createDto) {
-        log.info("POST /api/v1/articles - Creating article with title: {}", createDto.getTitle());
+        log.info("POST /v1/articles - Creating new article");
         ArticleDto createdArticle = articleService.createArticle(createDto);
         return new ResponseEntity<>(createdArticle, HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Get all articles")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
+    /**
+     * Get all articles
+     * 
+     * @return list of all articles
+     */
     @GetMapping
     public ResponseEntity<List<ArticleSummaryDto>> getAllArticles() {
-        log.info("GET /api/v1/articles - Fetching all articles");
+        log.info("GET /v1/articles - Retrieving all articles");
         List<ArticleSummaryDto> articles = articleService.getAllArticles();
         return ResponseEntity.ok(articles);
     }
 
-    @Operation(summary = "Get articles with pagination")
-    @ApiResponse(responseCode = "200", description = "Paginated articles retrieved successfully")
+    /**
+     * Get articles with pagination
+     * 
+     * @param pageable pagination parameters
+     * @return paginated list of articles
+     */
     @GetMapping("/paginated")
     public ResponseEntity<Page<ArticleSummaryDto>> getArticlesWithPagination(
-            @PageableDefault(size = 20) Pageable pageable) {
-        log.info("GET /api/v1/articles/paginated - Fetching articles with pagination: {}", pageable);
-        Page<ArticleSummaryDto> articlePage = articleService.getArticlesWithPagination(pageable);
-        return ResponseEntity.ok(articlePage);
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        log.info("GET /v1/articles/paginated - Retrieving articles with pagination");
+        Page<ArticleSummaryDto> articles = articleService.getArticlesWithPagination(pageable);
+        return ResponseEntity.ok(articles);
     }
 
-    @Operation(summary = "Get article by ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Article found"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<ArticleDto> getArticleById(
-            @Parameter(description = "Article ID") @PathVariable String id) {
-        log.info("GET /api/v1/articles/{} - Fetching article by ID", id);
+    /**
+     * Get article by URL slug or ID
+     * 
+     * @param identifier article URL slug or ID
+     * @return article if found, 404 if not found
+     */
+    @GetMapping("/{identifier}")
+    public ResponseEntity<ArticleDto> getArticle(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/articles/{} - Retrieving article", identifier);
         
-        Optional<ArticleDto> article = articleService.getArticleById(id);
-        if (article.isPresent()) {
-            // Increment view count
-            articleService.incrementViewCount(id);
-            return ResponseEntity.ok(article.get());
+        // First try to find by URL slug
+        Optional<ArticleDto> articleBySlug = articleService.getArticleByUrlSlug(identifier);
+        if (articleBySlug.isPresent()) {
+            return ResponseEntity.ok(articleBySlug.get());
         }
+        
+        // If not found and it looks like an ID (starts with ART-), try ID lookup for backward compatibility
+        if (identifier.startsWith("ART-")) {
+            Optional<ArticleDto> article = articleService.getArticleById(identifier);
+            return article.map(ResponseEntity::ok)
+                          .orElse(ResponseEntity.notFound().build());
+        }
+        
         return ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Get article by URL slug")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Article found"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @GetMapping("/slug/{urlSlug}")
-    public ResponseEntity<ArticleDto> getArticleByUrlSlug(
-            @Parameter(description = "Article URL slug") @PathVariable String urlSlug) {
-        log.info("GET /api/v1/articles/slug/{} - Fetching article by URL slug", urlSlug);
-        
-        Optional<ArticleDto> article = articleService.getArticleByUrlSlug(urlSlug);
-        if (article.isPresent()) {
-            // Increment view count
-            articleService.incrementViewCount(article.get().getId());
-            return ResponseEntity.ok(article.get());
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    @Operation(summary = "Update article by ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Article updated successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Article not found"),
-        @ApiResponse(responseCode = "409", description = "Duplicate article title")
-    })
-    @PutMapping("/{id}")
+    /**
+     * Update article
+     * 
+     * @param identifier article URL slug or ID
+     * @param updateDto updated article data
+     * @return updated article
+     */
+    @PutMapping("/{identifier}")
     public ResponseEntity<ArticleDto> updateArticle(
-            @Parameter(description = "Article ID") @PathVariable String id,
+            @PathVariable @NotBlank String identifier,
             @Valid @RequestBody ArticleUpdateDto updateDto) {
-        log.info("PUT /api/v1/articles/{} - Updating article", id);
-        ArticleDto updatedArticle = articleService.updateArticle(id, updateDto);
-        return ResponseEntity.ok(updatedArticle);
+        log.info("PUT /v1/articles/{} - Updating article", identifier);
+        
+        try {
+            ArticleDto updatedArticle;
+            
+            // Try to update by URL slug first, then by ID
+            if (identifier.startsWith("ART-")) {
+                updatedArticle = articleService.updateArticle(identifier, updateDto);
+            } else {
+                updatedArticle = articleService.updateArticleByUrlSlug(identifier, updateDto);
+            }
+            
+            return ResponseEntity.ok(updatedArticle);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @Operation(summary = "Update article by URL slug")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Article updated successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Article not found"),
-        @ApiResponse(responseCode = "409", description = "Duplicate article title")
-    })
-    @PutMapping("/slug/{urlSlug}")
-    public ResponseEntity<ArticleDto> updateArticleByUrlSlug(
-            @Parameter(description = "Article URL slug") @PathVariable String urlSlug,
-            @Valid @RequestBody ArticleUpdateDto updateDto) {
-        log.info("PUT /api/v1/articles/slug/{} - Updating article by URL slug", urlSlug);
-        ArticleDto updatedArticle = articleService.updateArticleByUrlSlug(urlSlug, updateDto);
-        return ResponseEntity.ok(updatedArticle);
+    /**
+     * Delete article
+     * 
+     * @param identifier article URL slug or ID
+     * @return 204 No Content if successful
+     */
+    @DeleteMapping("/{identifier}")
+    public ResponseEntity<Void> deleteArticle(@PathVariable @NotBlank String identifier) {
+        log.info("DELETE /v1/articles/{} - Deleting article", identifier);
+        
+        try {
+            if (identifier.startsWith("ART-")) {
+                articleService.deleteArticle(identifier);
+            } else {
+                articleService.deleteArticleByUrlSlug(identifier);
+            }
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @Operation(summary = "Delete article by ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Article deleted successfully"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteArticle(
-            @Parameter(description = "Article ID") @PathVariable String id) {
-        log.info("DELETE /api/v1/articles/{} - Deleting article", id);
-        articleService.deleteArticle(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Delete article by URL slug")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Article deleted successfully"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @DeleteMapping("/slug/{urlSlug}")
-    public ResponseEntity<Void> deleteArticleByUrlSlug(
-            @Parameter(description = "Article URL slug") @PathVariable String urlSlug) {
-        log.info("DELETE /api/v1/articles/slug/{} - Deleting article by URL slug", urlSlug);
-        articleService.deleteArticleByUrlSlug(urlSlug);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Search articles")
-    @ApiResponse(responseCode = "200", description = "Search results retrieved successfully")
+    /**
+     * Search articles by title or description
+     * 
+     * @param searchTerm search term
+     * @param pageable pagination parameters
+     * @return paginated search results
+     */
     @GetMapping("/search")
     public ResponseEntity<Page<ArticleSummaryDto>> searchArticles(
-            @Parameter(description = "Search term") @RequestParam String q,
-            @PageableDefault(size = 20) Pageable pageable) {
-        log.info("GET /api/v1/articles/search - Searching articles with term: {}", q);
-        Page<ArticleSummaryDto> searchResults = articleService.searchArticles(q, pageable);
-        return ResponseEntity.ok(searchResults);
-    }
-
-    @Operation(summary = "Get articles by type")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/type/{articleType}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByType(
-            @Parameter(description = "Article type") @PathVariable String articleType) {
-        log.info("GET /api/v1/articles/type/{} - Fetching articles by type", articleType);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByType(articleType);
+            @RequestParam @NotBlank String searchTerm,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        log.info("GET /v1/articles/search - Searching articles with term: {}", searchTerm);
+        Page<ArticleSummaryDto> articles = articleService.searchArticles(searchTerm, pageable);
         return ResponseEntity.ok(articles);
     }
 
-    @Operation(summary = "Get articles by category label ID")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/category/{categoryLabelId}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByCategoryLabelId(
-            @Parameter(description = "Category label ID") @PathVariable String categoryLabelId) {
-        log.info("GET /api/v1/articles/category/{} - Fetching articles by category label ID", categoryLabelId);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByCategoryLabelId(categoryLabelId);
+    /**
+     * Get articles by source
+     * 
+     * @param identifier source ID or URL slug
+     * @return list of articles from the source
+     */
+    @GetMapping("/source/{identifier}")
+    public ResponseEntity<List<ArticleSummaryDto>> getArticlesBySource(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/articles/source/{} - Retrieving articles by source", identifier);
+        List<ArticleSummaryDto> articles;
+        
+        if (identifier.startsWith("SRC-")) {
+            articles = articleService.getArticlesBySource(identifier);
+        } else {
+            articles = articleService.getArticlesBySourceSlug(identifier);
+        }
         return ResponseEntity.ok(articles);
     }
 
-    @Operation(summary = "Get articles by category label slug")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/category/slug/{categoryLabelSlug}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByCategoryLabelSlug(
-            @Parameter(description = "Category label slug") @PathVariable String categoryLabelSlug) {
-        log.info("GET /api/v1/articles/category/slug/{} - Fetching articles by category label slug", categoryLabelSlug);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByCategoryLabelSlug(categoryLabelSlug);
+    /**
+     * Get articles by label/tag
+     * 
+     * @param identifier label ID or URL slug
+     * @return list of articles with the specified label
+     */
+    @GetMapping("/label/{identifier}")
+    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByLabel(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/articles/label/{} - Retrieving articles by label", identifier);
+        List<ArticleSummaryDto> articles;
+        
+        if (identifier.startsWith("LBL-")) {
+            articles = articleService.getArticlesByLabel(identifier);
+        } else {
+            articles = articleService.getArticlesByLabelSlug(identifier);
+        }
         return ResponseEntity.ok(articles);
     }
 
-    @Operation(summary = "Get articles by difficulty label ID")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/difficulty/{difficultyLabelId}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByDifficultyLabelId(
-            @Parameter(description = "Difficulty label ID") @PathVariable String difficultyLabelId) {
-        log.info("GET /api/v1/articles/difficulty/{} - Fetching articles by difficulty label ID", difficultyLabelId);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByDifficultyLabelId(difficultyLabelId);
+    /**
+     * Advanced search with multiple filters
+     * 
+     * @param sourceIds comma-separated source IDs
+     * @param labelIds comma-separated label IDs
+     * @param searchTerm search term for title/description
+     * @return list of articles matching the filters
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<List<ArticleSummaryDto>> filterArticles(
+            @RequestParam(required = false) List<String> sourceIds,
+            @RequestParam(required = false) List<String> labelIds,
+            @RequestParam(required = false) String searchTerm) {
+        log.info("GET /v1/articles/filter - Filtering articles with sources: {}, labels: {}, term: {}", 
+                sourceIds, labelIds, searchTerm);
+        
+        List<ArticleSummaryDto> articles = articleService.searchWithFilters(sourceIds, labelIds, searchTerm);
         return ResponseEntity.ok(articles);
     }
 
-    @Operation(summary = "Get articles by difficulty label slug")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/difficulty/slug/{difficultyLabelSlug}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByDifficultyLabelSlug(
-            @Parameter(description = "Difficulty label slug") @PathVariable String difficultyLabelSlug) {
-        log.info("GET /api/v1/articles/difficulty/slug/{} - Fetching articles by difficulty label slug", difficultyLabelSlug);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByDifficultyLabelSlug(difficultyLabelSlug);
-        return ResponseEntity.ok(articles);
-    }
-
-    @Operation(summary = "Get articles by label ID")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/label/{labelId}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByLabelId(
-            @Parameter(description = "Label ID") @PathVariable String labelId) {
-        log.info("GET /api/v1/articles/label/{} - Fetching articles by label ID", labelId);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByLabelId(labelId);
-        return ResponseEntity.ok(articles);
-    }
-
-    @Operation(summary = "Get articles by label slug")
-    @ApiResponse(responseCode = "200", description = "Articles retrieved successfully")
-    @GetMapping("/label/slug/{labelSlug}")
-    public ResponseEntity<List<ArticleSummaryDto>> getArticlesByLabelSlug(
-            @Parameter(description = "Label slug") @PathVariable String labelSlug) {
-        log.info("GET /api/v1/articles/label/slug/{} - Fetching articles by label slug", labelSlug);
-        List<ArticleSummaryDto> articles = articleService.getArticlesByLabelSlug(labelSlug);
-        return ResponseEntity.ok(articles);
-    }
-
-    @Operation(summary = "Get recent articles")
-    @ApiResponse(responseCode = "200", description = "Recent articles retrieved successfully")
-    @GetMapping("/recent")
-    public ResponseEntity<Page<ArticleSummaryDto>> getRecentArticles(
-            @PageableDefault(size = 10) Pageable pageable) {
-        log.info("GET /api/v1/articles/recent - Fetching recent articles");
-        Page<ArticleSummaryDto> recentArticles = articleService.getRecentArticles(pageable);
-        return ResponseEntity.ok(recentArticles);
-    }
-
-    @Operation(summary = "Advanced search with filters")
-    @ApiResponse(responseCode = "200", description = "Filtered articles retrieved successfully")
-    @GetMapping("/advanced-search")
-    public ResponseEntity<List<ArticleSummaryDto>> searchWithFilters(
-            @Parameter(description = "Article types") @RequestParam(required = false) List<String> articleTypes,
-            @Parameter(description = "Category label IDs") @RequestParam(required = false) List<String> categoryLabelIds,
-            @Parameter(description = "Difficulty label IDs") @RequestParam(required = false) List<String> difficultyLabelIds,
-            @Parameter(description = "Label IDs") @RequestParam(required = false) List<String> labelIds,
-            @Parameter(description = "Search term") @RequestParam(required = false) String searchTerm) {
-        log.info("GET /api/v1/articles/advanced-search - Advanced search with filters");
-        List<ArticleSummaryDto> articles = articleService.searchWithFilters(
-                articleTypes, categoryLabelIds, difficultyLabelIds, labelIds, searchTerm);
-        return ResponseEntity.ok(articles);
-    }
-
-    @Operation(summary = "Create article-label relationship")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Article-label relationship created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Article or label not found"),
-        @ApiResponse(responseCode = "409", description = "Relationship already exists")
-    })
-    @PostMapping("/labels")
-    public ResponseEntity<Void> createArticleLabel(@Valid @RequestBody ArticleLabelCreateDto createDto) {
-        log.info("POST /api/v1/articles/labels - Creating article-label relationship");
-        boolean created = articleService.createArticleLabel(createDto);
-        return created ? ResponseEntity.status(HttpStatus.CREATED).build() : ResponseEntity.badRequest().build();
-    }
-
-    @Operation(summary = "Create multiple article-label relationships")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Article-label relationships created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Article or labels not found")
-    })
-    @PostMapping("/labels/bulk")
-    public ResponseEntity<String> createArticleLabels(@Valid @RequestBody ArticleLabelBulkCreateDto bulkCreateDto) {
-        log.info("POST /api/v1/articles/labels/bulk - Creating bulk article-label relationships");
-        int createdCount = articleService.createArticleLabels(bulkCreateDto);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Created " + createdCount + " article-label relationships");
-    }
-
-    @Operation(summary = "Remove article-label relationship")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Article-label relationship removed successfully"),
-        @ApiResponse(responseCode = "404", description = "Relationship not found")
-    })
-    @DeleteMapping("/{articleId}/labels/{labelId}")
-    public ResponseEntity<Void> removeArticleLabel(
-            @Parameter(description = "Article ID") @PathVariable String articleId,
-            @Parameter(description = "Label ID") @PathVariable String labelId) {
-        log.info("DELETE /api/v1/articles/{}/labels/{} - Removing article-label relationship", articleId, labelId);
-        boolean removed = articleService.removeArticleLabel(articleId, labelId);
-        return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
-    }
-
-    @Operation(summary = "Get article statistics")
-    @ApiResponse(responseCode = "200", description = "Article statistics retrieved successfully")
+    /**
+     * Get article statistics
+     * 
+     * @return article statistics
+     */
     @GetMapping("/statistics")
     public ResponseEntity<ArticleStatisticsDto> getArticleStatistics() {
-        log.info("GET /api/v1/articles/statistics - Fetching article statistics");
+        log.info("GET /v1/articles/statistics - Retrieving article statistics");
         ArticleStatisticsDto statistics = articleService.getArticleStatistics();
         return ResponseEntity.ok(statistics);
     }
 
-    @Operation(summary = "Increment article like count")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Like count incremented successfully"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @PostMapping("/{id}/like")
-    public ResponseEntity<Void> likeArticle(
-            @Parameter(description = "Article ID") @PathVariable String id) {
-        log.info("POST /api/v1/articles/{}/like - Incrementing like count", id);
-        articleService.incrementLikeCount(id);
-        return ResponseEntity.ok().build();
+    /**
+     * Check if article title is available within a source
+     * 
+     * @param title article title to check
+     * @param sourceId source ID (optional)
+     * @return availability status
+     */
+    @GetMapping("/check-title")
+    public ResponseEntity<Boolean> checkTitleAvailability(
+            @RequestParam @NotBlank String title,
+            @RequestParam(required = false) String sourceId) {
+        log.info("GET /v1/articles/check-title - Checking title availability: {} for source: {}", title, sourceId);
+        boolean isAvailable = articleService.checkTitleAvailability(title, sourceId);
+        return ResponseEntity.ok(isAvailable);
     }
 
-    @Operation(summary = "Increment article bookmark count")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Bookmark count incremented successfully"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @PostMapping("/{id}/bookmark")
-    public ResponseEntity<Void> bookmarkArticle(
-            @Parameter(description = "Article ID") @PathVariable String id) {
-        log.info("POST /api/v1/articles/{}/bookmark - Incrementing bookmark count", id);
-        articleService.incrementBookmarkCount(id);
-        return ResponseEntity.ok().build();
+    /**
+     * Get the markdown content of an article
+     * 
+     * @param identifier article URL slug or ID
+     * @return markdown content of the article
+     */
+    @GetMapping(value = "/{identifier}/content", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getArticleContent(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/articles/{}/content - Retrieving article content", identifier);
+        
+        try {
+            String content;
+            if (identifier.startsWith("ART-")) {
+                content = articleService.getArticleContent(identifier);
+            } else {
+                content = articleService.getArticleContentByUrlSlug(identifier);
+            }
+            return ResponseEntity.ok(content);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Error retrieving article content for identifier: {}", identifier, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
-    // Special endpoint for hierarchical article access
-    @Operation(summary = "Get article by hierarchical path")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Article found"),
-        @ApiResponse(responseCode = "404", description = "Article not found")
-    })
-    @GetMapping("/{path1}")
-    public ResponseEntity<ArticleDto> getArticleByPath1(
-            @Parameter(description = "First level path") @PathVariable String path1) {
-        log.info("GET /api/v1/articles/{} - Fetching article by path", path1);
-        return getArticleByUrlSlug(path1);
+    /**
+     * Get all labels for a specific article
+     * 
+     * @param identifier article URL slug or ID
+     * @return list of article-label relationships
+     */
+    @GetMapping("/{identifier}/labels")
+    public ResponseEntity<List<ArticleLabelReferenceDto>> getArticleLabels(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/articles/{}/labels - Retrieving labels for article", identifier);
+        
+        try {
+            // First resolve the article ID if needed
+            String articleId = identifier;
+            if (!identifier.startsWith("ART-")) {
+                // Get by URL slug to find the ID
+                Optional<ArticleDto> article = articleService.getArticleByUrlSlug(identifier);
+                if (article.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                articleId = article.get().getId();
+            }
+            
+            List<ArticleLabelReferenceDto> labels = articleService.getArticleLabels(articleId);
+            return ResponseEntity.ok(labels);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @GetMapping("/{path1}/{path2}")
-    public ResponseEntity<ArticleDto> getArticleByPath2(
-            @PathVariable String path1, @PathVariable String path2) {
-        String fullPath = path1 + "/" + path2;
-        log.info("GET /api/v1/articles/{} - Fetching article by hierarchical path", fullPath);
-        return getArticleByUrlSlug(fullPath);
+    /**
+     * Get primary labels for a specific article
+     * 
+     * @param identifier article URL slug or ID
+     * @return list of primary article-label relationships
+     */
+    @GetMapping("/{identifier}/labels/primary")
+    public ResponseEntity<List<ArticleLabelReferenceDto>> getPrimaryArticleLabels(@PathVariable @NotBlank String identifier) {
+        log.info("GET /v1/articles/{}/labels/primary - Retrieving primary labels for article", identifier);
+        
+        try {
+            // First resolve the article ID if needed
+            String articleId = identifier;
+            if (!identifier.startsWith("ART-")) {
+                // Get by URL slug to find the ID
+                Optional<ArticleDto> article = articleService.getArticleByUrlSlug(identifier);
+                if (article.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                articleId = article.get().getId();
+            }
+            
+            List<ArticleLabelReferenceDto> primaryLabels = articleService.getPrimaryArticleLabels(articleId);
+            return ResponseEntity.ok(primaryLabels);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @GetMapping("/{path1}/{path2}/{path3}")
-    public ResponseEntity<ArticleDto> getArticleByPath3(
-            @PathVariable String path1, @PathVariable String path2, @PathVariable String path3) {
-        String fullPath = path1 + "/" + path2 + "/" + path3;
-        log.info("GET /api/v1/articles/{} - Fetching article by hierarchical path", fullPath);
-        return getArticleByUrlSlug(fullPath);
+    /**
+     * Add a label to an article
+     * 
+     * @param createDto article-label relationship data
+     * @return 201 Created if successful
+     */
+    @PostMapping("/labels")
+    public ResponseEntity<Void> addLabelToArticle(@Valid @RequestBody ArticleLabelCreateDto createDto) {
+        log.info("POST /v1/articles/labels - Adding label to article");
+        articleService.addLabelToArticle(createDto);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @GetMapping("/{path1}/{path2}/{path3}/{path4}")
-    public ResponseEntity<ArticleDto> getArticleByPath4(
-            @PathVariable String path1, @PathVariable String path2, 
-            @PathVariable String path3, @PathVariable String path4) {
-        String fullPath = path1 + "/" + path2 + "/" + path3 + "/" + path4;
-        log.info("GET /api/v1/articles/{} - Fetching article by hierarchical path", fullPath);
-        return getArticleByUrlSlug(fullPath);
+    /**
+     * Add multiple labels to articles
+     * 
+     * @param bulkCreateDto bulk article-label relationship data
+     * @return 201 Created if successful
+     */
+    @PostMapping("/labels/bulk")
+    public ResponseEntity<Void> addLabelsToArticles(@Valid @RequestBody ArticleLabelBulkCreateDto bulkCreateDto) {
+        log.info("POST /v1/articles/labels/bulk - Adding labels to articles in bulk");
+        articleService.addLabelsToArticle(bulkCreateDto);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    /**
+     * Remove a label from an article
+     * 
+     * @param articleId article ID
+     * @param labelId label ID
+     * @return 204 No Content if successful
+     */
+    @DeleteMapping("/labels")
+    public ResponseEntity<Void> removeLabelFromArticle(
+            @RequestParam @ValidId String articleId,
+            @RequestParam @ValidId String labelId) {
+        log.info("DELETE /v1/articles/labels - Removing label {} from article {}", labelId, articleId);
+        
+        try {
+            articleService.removeLabelFromArticle(articleId, labelId);
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

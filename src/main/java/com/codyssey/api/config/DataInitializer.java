@@ -210,7 +210,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void generateArticleUrlSlugs() {
-        List<Article> articlesWithoutSlugs = articleRepository.findByDeletedFalse()
+        List<Article> articlesWithoutSlugs = articleRepository.findByDeletedFalseWithSource()
                 .stream()
                 .filter(article -> article.getUrlSlug() == null || article.getUrlSlug().trim().isEmpty())
                 .toList();
@@ -219,15 +219,15 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Generating URL slugs for {} articles", articlesWithoutSlugs.size());
             
             Set<String> existingSlugs = new HashSet<>();
-            articleRepository.findByDeletedFalse().forEach(article -> {
+            articleRepository.findByDeletedFalseWithSource().forEach(article -> {
                 if (article.getUrlSlug() != null && !article.getUrlSlug().trim().isEmpty()) {
                     existingSlugs.add(article.getUrlSlug());
                 }
             });
 
             for (Article article : articlesWithoutSlugs) {
-                String articleTypeCode = article.getArticleType().toString().toLowerCase();
-                String baseSlug = UrlSlugGenerator.generateArticleSlug(article.getTitle(), articleTypeCode);
+                String sourceCode = article.getSource() != null ? article.getSource().getCode() : "";
+                String baseSlug = UrlSlugGenerator.generateArticleSlug(article.getTitle(), sourceCode);
                 String uniqueSlug = UrlSlugGenerator.generateUniqueSlug(baseSlug, existingSlugs);
                 article.setUrlSlug(uniqueSlug);
                 existingSlugs.add(uniqueSlug);
