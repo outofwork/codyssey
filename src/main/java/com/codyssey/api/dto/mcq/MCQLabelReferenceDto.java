@@ -20,4 +20,5 @@ public class MCQLabelReferenceDto {
     private Integer relevanceScore;
     private Boolean isPrimary;
     private String notes;
+    private String uri;
 }

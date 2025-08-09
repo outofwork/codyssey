@@ -47,6 +47,16 @@ public interface MCQQuestionService {
     Page<MCQQuestionSummaryDto> getAllMCQQuestions(Pageable pageable);
 
     /**
+     * Get all MCQ questions in full format (without pagination)
+     */
+    List<MCQQuestionDto> getAllMCQQuestionsWithFullDetails();
+
+    /**
+     * Get all MCQ questions in simplified format (without pagination)
+     */
+    List<SimplifiedMCQQuestionDto> getAllMCQQuestionsSimplified();
+
+    /**
      * Get MCQ questions by label (using label ID)
      */
     List<MCQQuestionSummaryDto> getMCQQuestionsByLabel(String labelId);
@@ -55,6 +65,16 @@ public interface MCQQuestionService {
      * Get MCQ questions by label (using label slug)
      */
     List<MCQQuestionSummaryDto> getMCQQuestionsByLabelSlug(String labelSlug);
+
+    /**
+     * Get MCQ questions by label with full details (using label slug)
+     */
+    List<MCQQuestionDto> getMCQQuestionsByLabelSlugWithFullDetails(String labelSlug);
+
+    /**
+     * Get MCQ questions by label in simplified format (using label slug)
+     */
+    List<SimplifiedMCQQuestionDto> getMCQQuestionsByLabelSlugSimplified(String labelSlug);
 
     /**
      * Get MCQ questions by label with pagination (using label ID)
@@ -147,6 +167,16 @@ public interface MCQQuestionService {
      * Get MCQ questions by category (using category slug)
      */
     List<MCQQuestionSummaryDto> getMCQQuestionsByCategorySlug(String categorySlug);
+
+    /**
+     * Get MCQ questions by category with full details (using category slug)
+     */
+    List<MCQQuestionDto> getMCQQuestionsByCategorySlugWithFullDetails(String categorySlug);
+
+    /**
+     * Get MCQ questions by category in simplified format (using category slug)
+     */
+    List<SimplifiedMCQQuestionDto> getMCQQuestionsByCategorySlugSimplified(String categorySlug);
 
     /**
      * Get MCQ questions by category with pagination (using category ID)

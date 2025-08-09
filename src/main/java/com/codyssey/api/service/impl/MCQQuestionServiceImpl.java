@@ -165,6 +165,22 @@ public class MCQQuestionServiceImpl implements MCQQuestionService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<MCQQuestionDto> getAllMCQQuestionsWithFullDetails() {
+        log.info("Getting all MCQ questions with full details");
+        List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByStatus(MCQQuestion.MCQStatus.ACTIVE);
+        return mcqQuestions.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SimplifiedMCQQuestionDto> getAllMCQQuestionsSimplified() {
+        log.info("Getting all MCQ questions in simplified format");
+        List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByStatus(MCQQuestion.MCQStatus.ACTIVE);
+        return mcqQuestions.stream().map(this::convertToSimplifiedDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<MCQQuestionSummaryDto> getMCQQuestionsByLabel(String labelId) {
         // Validate label exists
         labelRepository.findByIdAndNotDeleted(labelId)
@@ -297,6 +313,30 @@ public class MCQQuestionServiceImpl implements MCQQuestionService {
 
         List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByLabelAndStatus(label.getId(), MCQQuestion.MCQStatus.ACTIVE);
         return mcqQuestions.stream().map(this::convertToSummaryDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MCQQuestionDto> getMCQQuestionsByLabelSlugWithFullDetails(String labelSlug) {
+        log.info("Getting MCQ questions with full details by label slug: {}", labelSlug);
+        // Find label by slug
+        Label label = labelRepository.findByUrlSlug(labelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with slug: " + labelSlug));
+
+        List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByLabelAndStatus(label.getId(), MCQQuestion.MCQStatus.ACTIVE);
+        return mcqQuestions.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SimplifiedMCQQuestionDto> getMCQQuestionsByLabelSlugSimplified(String labelSlug) {
+        log.info("Getting MCQ questions in simplified format by label slug: {}", labelSlug);
+        // Find label by slug
+        Label label = labelRepository.findByUrlSlug(labelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with slug: " + labelSlug));
+
+        List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByLabelAndStatus(label.getId(), MCQQuestion.MCQStatus.ACTIVE);
+        return mcqQuestions.stream().map(this::convertToSimplifiedDto).collect(Collectors.toList());
     }
 
     @Override
@@ -478,6 +518,8 @@ public class MCQQuestionServiceImpl implements MCQQuestionService {
 
         if (mcqLabel.getLabel() != null) {
             dto.setLabel(convertToLabelSummaryDto(mcqLabel.getLabel()));
+            // Set URI to fetch all MCQs of this label
+            dto.setUri("/api/v1/mcq/labels/" + mcqLabel.getLabel().getUrlSlug() + "/questions");
         }
 
         return dto;
@@ -490,6 +532,15 @@ public class MCQQuestionServiceImpl implements MCQQuestionService {
         dto.setName(label.getName());
         dto.setDescription(label.getDescription());
         dto.setUrlSlug(label.getUrlSlug());
+        
+        // Set categoryCode if label has a category
+        if (label.getCategory() != null) {
+            dto.setCategoryCode(label.getCategory().getCode());
+        }
+        
+        // Set URI to fetch all MCQs of this label
+        dto.setUri("/api/v1/mcq/labels/" + label.getUrlSlug() + "/questions");
+        
         return dto;
     }
 
@@ -514,6 +565,56 @@ public class MCQQuestionServiceImpl implements MCQQuestionService {
         return dto;
     }
 
+    private SimplifiedMCQQuestionDto convertToSimplifiedDto(MCQQuestion mcqQuestion) {
+        SimplifiedMCQQuestionDto dto = new SimplifiedMCQQuestionDto();
+        dto.setId(mcqQuestion.getId());
+        dto.setQuestionText(mcqQuestion.getQuestionText());
+        dto.setOptionA(mcqQuestion.getOptionA());
+        dto.setOptionB(mcqQuestion.getOptionB());
+        dto.setOptionC(mcqQuestion.getOptionC());
+        dto.setOptionD(mcqQuestion.getOptionD());
+        dto.setCorrectAnswer(mcqQuestion.getCorrectAnswer());
+        dto.setExplanation(mcqQuestion.getExplanation());
+        dto.setStatus(mcqQuestion.getStatus());
+        dto.setCreatedAt(mcqQuestion.getCreatedAt());
+
+        // Convert difficulty label to simplified format
+        if (mcqQuestion.getDifficultyLabel() != null) {
+            SimplifiedLabelDto difficultyLabel = new SimplifiedLabelDto();
+            difficultyLabel.setName(mcqQuestion.getDifficultyLabel().getName());
+            difficultyLabel.setUri("/api/v1/mcq/labels/" + mcqQuestion.getDifficultyLabel().getUrlSlug() + "/questions");
+            dto.setDifficultyLabel(difficultyLabel);
+        }
+
+        // Convert MCQ categories to simplified format
+        if (mcqQuestion.getMcqCategories() != null) {
+            List<SimplifiedCategoryDto> categories = mcqQuestion.getMcqCategories().stream()
+                .map(mcqCategory -> {
+                    SimplifiedCategoryDto categoryDto = new SimplifiedCategoryDto();
+                    categoryDto.setName(mcqCategory.getCategory().getName());
+                    categoryDto.setUri("/api/v1/mcq/categories/" + mcqCategory.getCategory().getUrlSlug() + "/questions");
+                    return categoryDto;
+                })
+                .collect(Collectors.toList());
+            dto.setMcqCategories(categories);
+        }
+
+        // Convert MCQ labels to simplified format
+        if (mcqQuestion.getMcqLabels() != null) {
+            List<SimplifiedLabelDto> labels = mcqQuestion.getMcqLabels().stream()
+                .map(mcqLabel -> {
+                    SimplifiedLabelDto labelDto = new SimplifiedLabelDto();
+                    labelDto.setName(mcqLabel.getLabel().getName());
+                    labelDto.setUri("/api/v1/mcq/labels/" + mcqLabel.getLabel().getUrlSlug() + "/questions");
+                    return labelDto;
+                })
+                .collect(Collectors.toList());
+            dto.setMcqLabels(labels);
+        }
+
+        return dto;
+    }
+
     // Category-based methods implementation
 
     @Override
@@ -533,6 +634,30 @@ public class MCQQuestionServiceImpl implements MCQQuestionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with slug: " + categorySlug));
         
         return getMCQQuestionsByCategory(category.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MCQQuestionDto> getMCQQuestionsByCategorySlugWithFullDetails(String categorySlug) {
+        log.info("Getting MCQ questions with full details by category slug: {}", categorySlug);
+        // Find category by slug
+        LabelCategory category = labelCategoryRepository.findByUrlSlug(categorySlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with slug: " + categorySlug));
+        
+        List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByCategoryAndStatus(category.getId(), MCQQuestion.MCQStatus.ACTIVE);
+        return mcqQuestions.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SimplifiedMCQQuestionDto> getMCQQuestionsByCategorySlugSimplified(String categorySlug) {
+        log.info("Getting MCQ questions in simplified format by category slug: {}", categorySlug);
+        // Find category by slug
+        LabelCategory category = labelCategoryRepository.findByUrlSlug(categorySlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with slug: " + categorySlug));
+        
+        List<MCQQuestion> mcqQuestions = mcqQuestionRepository.findByCategoryAndStatus(category.getId(), MCQQuestion.MCQStatus.ACTIVE);
+        return mcqQuestions.stream().map(this::convertToSimplifiedDto).collect(Collectors.toList());
     }
 
     @Override

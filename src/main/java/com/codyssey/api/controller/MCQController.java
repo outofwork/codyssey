@@ -143,15 +143,26 @@ public class MCQController {
         return ResponseEntity.ok(mcqQuestions);
     }
 
+    @Operation(summary = "Get all MCQ questions with simplified format", description = "Retrieves all MCQ questions with clean response format")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "MCQ questions retrieved successfully")
+    })
+    @GetMapping("/all")
+    public ResponseEntity<List<SimplifiedMCQQuestionDto>> getAllMCQQuestionsSimplified() {
+        log.info("Request to get all MCQ questions with simplified format");
+        List<SimplifiedMCQQuestionDto> mcqQuestions = mcqQuestionService.getAllMCQQuestionsSimplified();
+        return ResponseEntity.ok(mcqQuestions);
+    }
+
     @Operation(summary = "Get MCQ questions by label", description = "Retrieves MCQ questions associated with a specific label")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "MCQ questions retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Label not found")
     })
     @GetMapping("/labels/{labelSlug}/questions")
-    public ResponseEntity<List<MCQQuestionSummaryDto>> getMCQQuestionsByLabel(@PathVariable String labelSlug) {
+    public ResponseEntity<List<SimplifiedMCQQuestionDto>> getMCQQuestionsByLabel(@PathVariable String labelSlug) {
         log.info("Request to get MCQ questions by label slug: {}", labelSlug);
-        List<MCQQuestionSummaryDto> mcqQuestions = mcqQuestionService.getMCQQuestionsByLabelSlug(labelSlug);
+        List<SimplifiedMCQQuestionDto> mcqQuestions = mcqQuestionService.getMCQQuestionsByLabelSlugSimplified(labelSlug);
         return ResponseEntity.ok(mcqQuestions);
     }
 
@@ -286,9 +297,9 @@ public class MCQController {
             @ApiResponse(responseCode = "404", description = "Category not found")
     })
     @GetMapping("/categories/{categorySlug}/questions")
-    public ResponseEntity<List<MCQQuestionSummaryDto>> getMCQQuestionsByCategory(@PathVariable String categorySlug) {
+    public ResponseEntity<List<SimplifiedMCQQuestionDto>> getMCQQuestionsByCategory(@PathVariable String categorySlug) {
         log.info("Request to get MCQ questions by category slug: {}", categorySlug);
-        List<MCQQuestionSummaryDto> mcqQuestions = mcqQuestionService.getMCQQuestionsByCategorySlug(categorySlug);
+        List<SimplifiedMCQQuestionDto> mcqQuestions = mcqQuestionService.getMCQQuestionsByCategorySlugSimplified(categorySlug);
         return ResponseEntity.ok(mcqQuestions);
     }
 
