@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -32,10 +33,17 @@ import java.util.Optional;
 @Slf4j
 @Validated
 @Tag(name = "Label Management", description = "APIs for managing labels with hierarchical relationships")
+
 public class LabelController {
 
     private final LabelService labelService;
 
+    /**
+     * Create a new label
+     * 
+     * @param createDto label creation data
+     * @return created label with HTTP 201 status
+     */
     @Operation(summary = "Create a new label", description = "Creates a new label associated with a valid label category")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Label created successfully"),
@@ -53,6 +61,12 @@ public class LabelController {
         return new ResponseEntity<>(createdLabel, HttpStatus.CREATED);
     }
 
+    /**
+     * Create multiple labels in bulk
+     * 
+     * @param bulkCreateDto bulk label creation data
+     * @return list of created labels with HTTP 201 status
+     */
     @Operation(summary = "Create multiple labels in bulk",
             description = "Creates multiple labels maintaining parent-child relationships. Can create parent and child from fresh or child of existing parent.")
     @ApiResponses(value = {
@@ -71,6 +85,12 @@ public class LabelController {
         return new ResponseEntity<>(createdLabels, HttpStatus.CREATED);
     }
 
+    /**
+     * Get label by URL slug or ID
+     * 
+     * @param identifier label URL slug or ID
+     * @return label if found, 404 if not found
+     */
     @Operation(summary = "Get label by URL slug or ID", description = "Retrieves a label by its SEO-friendly URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label found"),
@@ -99,6 +119,13 @@ public class LabelController {
         return ResponseEntity.notFound().build();
     }
 
+    /**
+     * Update label
+     * 
+     * @param identifier label URL slug or ID
+     * @param updateDto updated label data
+     * @return updated label
+     */
     @Operation(summary = "Update label", description = "Updates an existing label's properties using URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label updated successfully"),
@@ -125,6 +152,12 @@ public class LabelController {
         }
     }
 
+    /**
+     * Delete label
+     * 
+     * @param identifier label URL slug or ID
+     * @return 204 No Content if successful
+     */
     @Operation(summary = "Delete label", description = "Soft deletes a label by URL slug or ID. Cannot delete if label has children.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Label deleted successfully"),
@@ -147,6 +180,11 @@ public class LabelController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Get all labels
+     * 
+     * @return list of all labels
+     */
     @Operation(summary = "Get all labels", description = "Retrieves all non-deleted labels")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Labels retrieved successfully")
@@ -158,6 +196,11 @@ public class LabelController {
         return ResponseEntity.ok(labels);
     }
 
+    /**
+     * Get all labels with hierarchy
+     * 
+     * @return hierarchical list of labels
+     */
     @Operation(summary = "Get all labels with hierarchy", description = "Get all labels with parent-child links in hierarchical structure")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label hierarchy retrieved successfully")
@@ -169,6 +212,12 @@ public class LabelController {
         return ResponseEntity.ok(hierarchy);
     }
 
+    /**
+     * Get labels by category
+     * 
+     * @param category category code
+     * @return list of labels in the category
+     */
     @Operation(summary = "Get labels by category", description = "Get labels by category code")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Labels retrieved successfully"),
@@ -184,6 +233,12 @@ public class LabelController {
         return ResponseEntity.ok(labels);
     }
 
+    /**
+     * Get active labels by category
+     * 
+     * @param category category code
+     * @return list of active labels in the category
+     */
     @Operation(summary = "Get active labels by category", description = "Get only active labels by category code")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Active labels retrieved successfully"),
@@ -199,6 +254,12 @@ public class LabelController {
         return ResponseEntity.ok(labels);
     }
 
+    /**
+     * Get root labels by category
+     * 
+     * @param category category code
+     * @return list of root labels in the category
+     */
     @Operation(summary = "Get root labels by category", description = "Get root (parent) labels by category code")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Root labels retrieved successfully"),
@@ -214,6 +275,12 @@ public class LabelController {
         return ResponseEntity.ok(labels);
     }
 
+    /**
+     * Get child labels
+     * 
+     * @param id parent label ID
+     * @return list of child labels
+     */
     @Operation(summary = "Get child labels", description = "Get child labels for a given label ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Child labels retrieved successfully")
@@ -228,6 +295,12 @@ public class LabelController {
         return ResponseEntity.ok(children);
     }
 
+    /**
+     * Search labels by name
+     * 
+     * @param searchTerm search term for label name
+     * @return list of matching labels
+     */
     @Operation(summary = "Search labels by name", description = "Search labels by name containing the search term")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Search completed successfully")
@@ -242,6 +315,11 @@ public class LabelController {
         return ResponseEntity.ok(labels);
     }
 
+    /**
+     * Get available categories
+     * 
+     * @return list of available category codes
+     */
     @Operation(summary = "Get available categories", description = "Get list of available categories that have labels")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Categories retrieved successfully")
@@ -253,6 +331,14 @@ public class LabelController {
         return ResponseEntity.ok(categories);
     }
 
+    /**
+     * Check label name availability
+     * 
+     * @param name label name to check
+     * @param categoryCode category code
+     * @param parentId parent label ID (optional)
+     * @return availability status
+     */
     @Operation(summary = "Check label name availability",
             description = "Check if a label name is available within a category and parent context")
     @ApiResponses(value = {
@@ -273,6 +359,12 @@ public class LabelController {
         return ResponseEntity.ok(available);
     }
 
+    /**
+     * Toggle label active status
+     * 
+     * @param id label ID
+     * @return updated label
+     */
     @Operation(summary = "Toggle label active status", description = "Toggle the active status of a label")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Active status toggled successfully"),

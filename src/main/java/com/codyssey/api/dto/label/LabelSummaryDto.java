@@ -21,4 +21,5 @@ public class LabelSummaryDto {
     private String urlSlug;
     private String categoryCode;
     private String questionUri;
+    private String uri;
 }

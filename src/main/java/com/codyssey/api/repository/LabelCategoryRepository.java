@@ -101,4 +101,13 @@ public interface LabelCategoryRepository extends JpaRepository<LabelCategory, St
      */
     @Query("SELECT COUNT(lc) > 0 FROM LabelCategory lc WHERE lc.urlSlug = :urlSlug AND lc.deleted = false")
     boolean existsByUrlSlug(@Param("urlSlug") String urlSlug);
+
+    /**
+     * Find active label categories ordered by name
+     *
+     * @param active the active status
+     * @return List of label categories ordered by name
+     */
+    @Query("SELECT lc FROM LabelCategory lc WHERE lc.active = :active AND lc.deleted = false ORDER BY lc.name")
+    List<LabelCategory> findByActiveOrderByName(@Param("active") Boolean active);
 }

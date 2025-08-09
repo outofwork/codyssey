@@ -38,6 +38,12 @@ public class UserController {
 
     private final UserService userService;
 
+    /**
+     * Register a new user
+     * 
+     * @param userRegistrationDto user registration data
+     * @return created user with HTTP 201 status
+     */
     @Operation(summary = "Register a new user", description = "Creates a new user account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "User created successfully"),
@@ -54,6 +60,11 @@ public class UserController {
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
+    /**
+     * Get all users
+     * 
+     * @return list of all users
+     */
     @Operation(summary = "Get all users", description = "Retrieves a list of all users")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
@@ -65,6 +76,12 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Get user by ID
+     * 
+     * @param id user ID
+     * @return user if found, 404 if not found
+     */
     @Operation(summary = "Get user by ID", description = "Retrieves a specific user by their ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User found"),
@@ -81,6 +98,12 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Get user by username
+     * 
+     * @param username username
+     * @return user if found, 404 if not found
+     */
     @Operation(summary = "Get user by username", description = "Retrieves a specific user by their username")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User found"),
@@ -97,6 +120,13 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Update user
+     * 
+     * @param id user ID
+     * @param userUpdateDto updated user data
+     * @return updated user
+     */
     @Operation(summary = "Update user", description = "Updates an existing user (username cannot be changed)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User updated successfully"),
@@ -116,6 +146,12 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    /**
+     * Delete user
+     * 
+     * @param id user ID
+     * @return 204 No Content if successful
+     */
     @Operation(summary = "Delete user", description = "Deletes a user by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "User deleted successfully"),
@@ -131,6 +167,13 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Enable/Disable user
+     * 
+     * @param id user ID
+     * @param enabled enabled status
+     * @return updated user
+     */
     @Operation(summary = "Enable/Disable user", description = "Enables or disables a user account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User status updated successfully"),
@@ -148,6 +191,12 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    /**
+     * Check username availability
+     * 
+     * @param username username to check
+     * @return availability status
+     */
     @Operation(summary = "Check username availability", description = "Checks if a username is available")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Availability checked")
@@ -162,6 +211,12 @@ public class UserController {
         return ResponseEntity.ok(!exists); // Return true if available (doesn't exist)
     }
 
+    /**
+     * Check email availability
+     * 
+     * @param email email to check
+     * @return availability status
+     */
     @Operation(summary = "Check email availability", description = "Checks if an email is available")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Availability checked")

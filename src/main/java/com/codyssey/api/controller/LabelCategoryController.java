@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,10 +35,17 @@ import jakarta.validation.constraints.NotBlank;
 @Slf4j
 @Validated
 @Tag(name = "Label Category Management", description = "APIs for managing label categories")
+
 public class LabelCategoryController {
 
     private final LabelCategoryService labelCategoryService;
 
+    /**
+     * Create a new label category
+     * 
+     * @param createDto label category creation data
+     * @return created label category with HTTP 201 status
+     */
     @Operation(summary = "Create a new label category", description = "Creates a new label category")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Label category created successfully"),
@@ -54,6 +62,12 @@ public class LabelCategoryController {
         return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
     }
 
+    /**
+     * Get all label categories
+     * 
+     * @param active filter by active status (optional)
+     * @return list of label categories
+     */
     @Operation(summary = "Get all label categories", description = "Retrieves all label categories or only active ones based on query parameter")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label categories retrieved successfully")
@@ -74,6 +88,12 @@ public class LabelCategoryController {
         }
     }
 
+    /**
+     * Get label category by URL slug or ID
+     * 
+     * @param identifier label category URL slug or ID
+     * @return label category if found, 404 if not found
+     */
     @Operation(summary = "Get label category by URL slug or ID", description = "Retrieves a label category by its SEO-friendly URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label category found"),
@@ -102,6 +122,13 @@ public class LabelCategoryController {
         return ResponseEntity.notFound().build();
     }
 
+    /**
+     * Update label category
+     * 
+     * @param identifier label category URL slug or ID
+     * @param updateDto updated label category data
+     * @return updated label category
+     */
     @Operation(summary = "Update label category", description = "Updates an existing label category using URL slug or ID (code cannot be changed)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Label category updated successfully"),
@@ -127,6 +154,12 @@ public class LabelCategoryController {
         }
     }
 
+    /**
+     * Delete label category
+     * 
+     * @param identifier label category URL slug or ID
+     * @return 204 No Content if successful
+     */
     @Operation(summary = "Delete label category", description = "Soft deletes a label category by URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Label category deleted successfully"),
@@ -148,6 +181,12 @@ public class LabelCategoryController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Search label categories by name
+     * 
+     * @param name search term for category name
+     * @return list of matching label categories
+     */
     @Operation(summary = "Search label categories by name", description = "Searches label categories by name (case insensitive)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Search completed successfully")
@@ -162,6 +201,12 @@ public class LabelCategoryController {
         return ResponseEntity.ok(categories);
     }
 
+    /**
+     * Check code availability
+     * 
+     * @param code category code to check
+     * @return availability status
+     */
     @Operation(summary = "Check code availability", description = "Checks if a code is available for use")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Availability checked")
