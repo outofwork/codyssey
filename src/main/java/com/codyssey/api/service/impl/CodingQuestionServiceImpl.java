@@ -1,0 +1,926 @@
+package com.codyssey.api.service.impl;
+
+import com.codyssey.api.dto.question.*;
+import com.codyssey.api.dto.label.LabelSummaryDto;
+import com.codyssey.api.dto.source.SourceSummaryDto;
+import com.codyssey.api.exception.DuplicateResourceException;
+import com.codyssey.api.exception.ResourceNotFoundException;
+import com.codyssey.api.model.*;
+import com.codyssey.api.repository.*;
+import com.codyssey.api.service.CodingQuestionService;
+import com.codyssey.api.util.UrlSlugGenerator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
+import org.springframework.core.io.ClassPathResource;
+
+/**
+ * Implementation of CodingQuestionService
+ * <p>
+ * Provides coding question management functionality including
+ * creation, retrieval, updating, and deletion with comprehensive search capabilities.
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+@Transactional
+public class CodingQuestionServiceImpl implements CodingQuestionService {
+
+    private final CodingQuestionRepository codingQuestionRepository;
+    private final LabelRepository labelRepository;
+    private final UserRepository userRepository;
+    private final SourceRepository sourceRepository;
+    private final QuestionLabelRepository questionLabelRepository;
+    private final QuestionCompanyRepository questionCompanyRepository;
+
+    @Override
+    public CodingQuestionDto createQuestion(CodingQuestionCreateDto createDto) {
+        log.info("Creating new coding question with title: {}", createDto.getTitle());
+
+        // Validate difficulty label if provided
+        Label difficultyLabel = null;
+        if (createDto.getDifficultyLabelId() != null && !createDto.getDifficultyLabelId().trim().isEmpty()) {
+            difficultyLabel = labelRepository.findByIdAndNotDeleted(createDto.getDifficultyLabelId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Difficulty label not found with ID: " + createDto.getDifficultyLabelId()));
+        }
+
+        // Validate source if provided
+        Source source = null;
+        if (createDto.getSourceId() != null && !createDto.getSourceId().trim().isEmpty()) {
+            source = sourceRepository.findByIdAndNotDeleted(createDto.getSourceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Source not found with ID: " + createDto.getSourceId()));
+        }
+
+        // Validate user if provided
+        User createdByUser = null;
+        if (createDto.getCreatedByUserId() != null && !createDto.getCreatedByUserId().trim().isEmpty()) {
+            createdByUser = userRepository.findByIdAndNotDeleted(createDto.getCreatedByUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + createDto.getCreatedByUserId()));
+        }
+
+        // Check for duplicate title within source
+        if (source != null) {
+            if (codingQuestionRepository.existsByTitleAndSourceId(createDto.getTitle(), source.getId())) {
+                throw new DuplicateResourceException("Question with title '" + createDto.getTitle() + 
+                        "' already exists for source: " + source.getName());
+            }
+        }
+
+        // Check for duplicate platform question ID within source
+        if (source != null && createDto.getPlatformQuestionId() != null) {
+            if (codingQuestionRepository.existsByPlatformQuestionIdAndSourceId(createDto.getPlatformQuestionId(), source.getId())) {
+                throw new DuplicateResourceException("Question with platform ID '" + createDto.getPlatformQuestionId() + 
+                        "' already exists for source: " + source.getName());
+            }
+        }
+
+        // Create the question entity
+        CodingQuestion question = new CodingQuestion();
+        question.setTitle(createDto.getTitle());
+        question.setShortDescription(createDto.getShortDescription());
+        question.setFilePath(createDto.getFilePath());
+        question.setDifficultyLabel(difficultyLabel);
+        question.setSource(source);
+        question.setPlatformQuestionId(createDto.getPlatformQuestionId());
+        question.setOriginalUrl(createDto.getOriginalUrl());
+        question.setStatus(CodingQuestion.QuestionStatus.valueOf(createDto.getStatus()));
+        question.setCreatedByUser(createdByUser);
+        
+        // Generate unique URL slug
+        String sourceCode = source != null ? source.getCode() : "";
+        String baseSlug = UrlSlugGenerator.generateQuestionSlug(createDto.getTitle(), sourceCode);
+        String uniqueSlug = generateUniqueSlug(baseSlug);
+        question.setUrlSlug(uniqueSlug);
+
+        CodingQuestion savedQuestion = codingQuestionRepository.save(question);
+        log.info("Successfully created coding question with ID: {}", savedQuestion.getId());
+
+        return convertToDto(savedQuestion);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getAllQuestions() {
+        log.info("Retrieving all coding questions");
+        List<CodingQuestion> questions = codingQuestionRepository.findByDeletedFalse();
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CodingQuestionDto> getQuestionById(String id) {
+        log.info("Retrieving coding question by ID: {}", id);
+        
+        // First get the basic question
+        Optional<CodingQuestion> questionOpt = codingQuestionRepository.findByIdAndNotDeleted(id);
+        if (questionOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        CodingQuestion question = questionOpt.get();
+        
+        // Load labels and companies separately to avoid MultipleBagFetchException
+        List<QuestionLabel> questionLabels = questionLabelRepository.findByQuestionId(id);
+        List<QuestionCompany> questionCompanies = questionCompanyRepository.findByQuestionId(id);
+        
+        // Manually set the loaded collections
+        question.setQuestionLabels(questionLabels);
+        question.setQuestionCompanies(questionCompanies);
+        
+        return Optional.of(convertToDto(question));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CodingQuestionDto> getQuestionByUrlSlug(String urlSlug) {
+        log.info("Retrieving coding question by URL slug: {}", urlSlug);
+        
+        // First get the basic question
+        Optional<CodingQuestion> questionOpt = codingQuestionRepository.findByUrlSlug(urlSlug);
+        if (questionOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        CodingQuestion question = questionOpt.get();
+        
+        // Load labels and companies separately to avoid MultipleBagFetchException
+        List<QuestionLabel> questionLabels = questionLabelRepository.findByQuestionId(question.getId());
+        List<QuestionCompany> questionCompanies = questionCompanyRepository.findByQuestionId(question.getId());
+        
+        // Manually set the loaded collections
+        question.setQuestionLabels(questionLabels);
+        question.setQuestionCompanies(questionCompanies);
+        
+        return Optional.of(convertToDto(question));
+    }
+
+    @Override
+    public CodingQuestionDto updateQuestion(String id, CodingQuestionUpdateDto updateDto) {
+        log.info("Updating coding question with ID: {}", id);
+
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with ID: " + id));
+
+        // Update fields if provided
+        if (updateDto.getTitle() != null) {
+            question.setTitle(updateDto.getTitle());
+        }
+        if (updateDto.getShortDescription() != null) {
+            question.setShortDescription(updateDto.getShortDescription());
+        }
+        if (updateDto.getFilePath() != null) {
+            question.setFilePath(updateDto.getFilePath());
+        }
+        if (updateDto.getDifficultyLabelId() != null) {
+            Label difficultyLabel = labelRepository.findByIdAndNotDeleted(updateDto.getDifficultyLabelId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Difficulty label not found with ID: " + updateDto.getDifficultyLabelId()));
+            question.setDifficultyLabel(difficultyLabel);
+        }
+        if (updateDto.getSourceId() != null) {
+            Source source = sourceRepository.findByIdAndNotDeleted(updateDto.getSourceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Source not found with ID: " + updateDto.getSourceId()));
+            question.setSource(source);
+        }
+        if (updateDto.getPlatformQuestionId() != null) {
+            question.setPlatformQuestionId(updateDto.getPlatformQuestionId());
+        }
+        if (updateDto.getOriginalUrl() != null) {
+            question.setOriginalUrl(updateDto.getOriginalUrl());
+        }
+        if (updateDto.getStatus() != null) {
+            question.setStatus(CodingQuestion.QuestionStatus.valueOf(updateDto.getStatus()));
+        }
+
+        CodingQuestion savedQuestion = codingQuestionRepository.save(question);
+        log.info("Successfully updated coding question with ID: {}", savedQuestion.getId());
+
+        return convertToDto(savedQuestion);
+    }
+
+    @Override
+    public void deleteQuestion(String id) {
+        log.info("Deleting coding question with ID: {}", id);
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with ID: " + id));
+        
+        question.setDeleted(true);
+        codingQuestionRepository.save(question);
+        log.info("Successfully deleted coding question with ID: {}", id);
+    }
+
+    @Override
+    public CodingQuestionDto updateQuestionByUrlSlug(String urlSlug, CodingQuestionUpdateDto updateDto) {
+        log.info("Updating coding question with URL slug: {}", urlSlug);
+
+        CodingQuestion question = codingQuestionRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with URL slug: " + urlSlug));
+
+        // Update fields if provided
+        if (updateDto.getTitle() != null) {
+            question.setTitle(updateDto.getTitle());
+            
+            // Update URL slug if title changes
+            String sourceCode = question.getSource() != null ? question.getSource().getCode() : "";
+            String baseSlug = UrlSlugGenerator.generateQuestionSlug(updateDto.getTitle(), sourceCode);
+            String uniqueSlug = generateUniqueSlug(baseSlug, question.getId());
+            question.setUrlSlug(uniqueSlug);
+        }
+        if (updateDto.getShortDescription() != null) {
+            question.setShortDescription(updateDto.getShortDescription());
+        }
+        if (updateDto.getFilePath() != null) {
+            question.setFilePath(updateDto.getFilePath());
+        }
+        if (updateDto.getPlatformQuestionId() != null) {
+            question.setPlatformQuestionId(updateDto.getPlatformQuestionId());
+        }
+        if (updateDto.getOriginalUrl() != null) {
+            question.setOriginalUrl(updateDto.getOriginalUrl());
+        }
+        if (updateDto.getStatus() != null) {
+            question.setStatus(CodingQuestion.QuestionStatus.valueOf(updateDto.getStatus()));
+        }
+
+        CodingQuestion updatedQuestion = codingQuestionRepository.save(question);
+        log.info("Successfully updated coding question with URL slug: {}", urlSlug);
+
+        return convertToDto(updatedQuestion);
+    }
+
+    @Override
+    public void deleteQuestionByUrlSlug(String urlSlug) {
+        log.info("Deleting coding question with URL slug: {}", urlSlug);
+        CodingQuestion question = codingQuestionRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with URL slug: " + urlSlug));
+        
+        question.setDeleted(true);
+        codingQuestionRepository.save(question);
+        log.info("Successfully deleted coding question with URL slug: {}", urlSlug);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CodingQuestionSummaryDto> getQuestionsWithPagination(Pageable pageable) {
+        log.info("Retrieving coding questions with pagination");
+        Page<CodingQuestion> questions = codingQuestionRepository.findQuestionsWithPagination(pageable);
+        return questions.map(this::convertToSummaryDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CodingQuestionSummaryDto> searchQuestions(String searchTerm, Pageable pageable) {
+        log.info("Searching coding questions with term: {}", searchTerm);
+        Page<CodingQuestion> questions = codingQuestionRepository.searchByTitleOrDescription(searchTerm, pageable);
+        return questions.map(this::convertToSummaryDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsBySource(String sourceId) {
+        log.info("Retrieving questions by source: {}", sourceId);
+        List<CodingQuestion> questions = codingQuestionRepository.findBySourceId(sourceId);
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByDifficulty(String difficultyLabelId) {
+        log.info("Retrieving questions by difficulty: {}", difficultyLabelId);
+        Label difficultyLabel = labelRepository.findByIdAndNotDeleted(difficultyLabelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Difficulty label not found with ID: " + difficultyLabelId));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByDifficultyLabel(difficultyLabel);
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByLabel(String labelId) {
+        log.info("Retrieving questions by label: {}", labelId);
+        List<CodingQuestion> questions = codingQuestionRepository.findByLabelId(labelId);
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByCompany(String companyLabelId) {
+        log.info("Retrieving questions by company: {}", companyLabelId);
+        List<CodingQuestion> questions = codingQuestionRepository.findByCompanyLabelId(companyLabelId);
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByDifficultySlug(String difficultyLabelSlug) {
+        log.info("Retrieving questions by difficulty slug: {}", difficultyLabelSlug);
+        Label difficultyLabel = labelRepository.findByUrlSlug(difficultyLabelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Difficulty label not found with URL slug: " + difficultyLabelSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByDifficultyLabel(difficultyLabel);
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByLabelSlug(String labelSlug) {
+        log.info("Retrieving questions by label slug: {}", labelSlug);
+        Label label = labelRepository.findByUrlSlug(labelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with URL slug: " + labelSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByLabelId(label.getId());
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsByCompanySlug(String companyLabelSlug) {
+        log.info("Retrieving questions by company slug: {}", companyLabelSlug);
+        Label companyLabel = labelRepository.findByUrlSlug(companyLabelSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Company label not found with URL slug: " + companyLabelSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findByCompanyLabelId(companyLabel.getId());
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> getQuestionsBySourceSlug(String sourceSlug) {
+        log.info("Retrieving questions by source slug: {}", sourceSlug);
+        Source source = sourceRepository.findByUrlSlug(sourceSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Source not found with URL slug: " + sourceSlug));
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findBySourceId(source.getId());
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CodingQuestionSummaryDto> searchWithFilters(List<String> sourceIds,
+                                                            List<String> difficultyIds,
+                                                            List<String> labelIds,
+                                                            List<String> companyIds,
+                                                            String searchTerm) {
+        log.info("Searching questions with filters - sources: {}, difficulties: {}, labels: {}, companies: {}, term: {}",
+                sourceIds, difficultyIds, labelIds, companyIds, searchTerm);
+        
+        List<CodingQuestion> questions = codingQuestionRepository.findWithFilters(
+                sourceIds, difficultyIds, labelIds, companyIds, searchTerm);
+        
+        return questions.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuestionStatisticsDto getQuestionStatistics(String questionId) {
+        log.info("Retrieving statistics for question ID: {}", questionId);
+
+        if (!codingQuestionRepository.existsById(questionId)) {
+            throw new ResourceNotFoundException("Coding question not found with ID: " + questionId);
+        }
+
+        Long labelsCount = questionLabelRepository.countByQuestionId(questionId);
+        Long companiesCount = questionCompanyRepository.countByQuestionId(questionId);
+        Long outgoingLinksCount = 0L; // Will be implemented when QuestionLink entity is added
+        Long incomingLinksCount = 0L;  // Will be implemented when QuestionLink entity is added
+
+        return new QuestionStatisticsDto(questionId, labelsCount, companiesCount, outgoingLinksCount, incomingLinksCount);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuestionsOverallStatisticsDto getOverallQuestionStatistics() {
+        log.info("Generating comprehensive question statistics");
+        
+        QuestionsOverallStatisticsDto stats = new QuestionsOverallStatisticsDto();
+        
+        // Get all questions, labels, and companies for analysis
+        List<CodingQuestion> allQuestions = codingQuestionRepository.findByDeletedFalse();
+        List<QuestionLabel> allQuestionLabels = questionLabelRepository.findByDeletedFalse();
+        List<QuestionCompany> allQuestionCompanies = questionCompanyRepository.findByDeletedFalse();
+        
+        // Overall Statistics
+        stats.setTotalQuestions((long) allQuestions.size());
+        stats.setActiveQuestions(allQuestions.stream()
+                .filter(q -> q.getStatus() == CodingQuestion.QuestionStatus.ACTIVE)
+                .count());
+        stats.setDraftQuestions(allQuestions.stream()
+                .filter(q -> q.getStatus() == CodingQuestion.QuestionStatus.DRAFT)
+                .count());
+        stats.setDeprecatedQuestions(allQuestions.stream()
+                .filter(q -> q.getStatus() == CodingQuestion.QuestionStatus.DEPRECATED)
+                .count());
+        
+        // Source Statistics
+        List<Source> allSources = sourceRepository.findByDeletedFalse();
+        stats.setTotalSources((long) allSources.size());
+        
+        long questionsWithSource = allQuestions.stream()
+                .filter(q -> q.getSource() != null)
+                .count();
+        stats.setQuestionsWithSource(questionsWithSource);
+        stats.setQuestionsWithoutSource(stats.getTotalQuestions() - questionsWithSource);
+        
+        // Questions by Source
+        Map<String, Long> sourceCountMap = allQuestions.stream()
+                .filter(q -> q.getSource() != null)
+                .collect(Collectors.groupingBy(
+                    q -> q.getSource().getId(),
+                    Collectors.counting()
+                ));
+        
+        List<QuestionsOverallStatisticsDto.SourceStatistic> sourceStats = allSources.stream()
+                .map(source -> {
+                    Long count = sourceCountMap.getOrDefault(source.getId(), 0L);
+                    String uri = "/api/v1/coding-questions/source/" + source.getUrlSlug();
+                    return new QuestionsOverallStatisticsDto.SourceStatistic(
+                        source.getName(), count, uri);
+                })
+                .sorted((s1, s2) -> s2.getQuestionCount().compareTo(s1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsBySource(sourceStats);
+        
+        // Difficulty Statistics
+        Map<String, Long> difficultyCountMap = allQuestions.stream()
+                .filter(q -> q.getDifficultyLabel() != null)
+                .collect(Collectors.groupingBy(
+                    q -> q.getDifficultyLabel().getId(),
+                    Collectors.counting()
+                ));
+        
+        List<QuestionsOverallStatisticsDto.DifficultyStatistic> difficultyStats = 
+                difficultyCountMap.entrySet().stream()
+                .map(entry -> {
+                    String labelId = entry.getKey();
+                    Long count = entry.getValue();
+                    
+                    // Find the difficulty label
+                    Optional<Label> diffLabel = allQuestions.stream()
+                        .map(CodingQuestion::getDifficultyLabel)
+                        .filter(l -> l != null && l.getId().equals(labelId))
+                        .findFirst();
+                    
+                    if (diffLabel.isPresent()) {
+                        String uri = "/api/v1/coding-questions/difficulty/" + diffLabel.get().getUrlSlug();
+                        return new QuestionsOverallStatisticsDto.DifficultyStatistic(
+                            diffLabel.get().getName(), count, uri);
+                    }
+                    return null;
+                })
+                .filter(stat -> stat != null)
+                .sorted((d1, d2) -> d2.getQuestionCount().compareTo(d1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByDifficulty(difficultyStats);
+        
+        // Tag/Label Statistics
+        Set<String> uniqueLabelIds = allQuestionLabels.stream()
+                .map(ql -> ql.getLabel().getId())
+                .collect(Collectors.toSet());
+        stats.setTotalUniqueTagsUsed((long) uniqueLabelIds.size());
+        
+        // Questions by Tag
+        Map<String, List<QuestionLabel>> labelGroupMap = allQuestionLabels.stream()
+                .collect(Collectors.groupingBy(ql -> ql.getLabel().getId()));
+        
+        List<QuestionsOverallStatisticsDto.TagStatistic> tagStats = labelGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String labelId = entry.getKey();
+                    List<QuestionLabel> questionLabelsForLabel = entry.getValue();
+                    
+                    if (questionLabelsForLabel.isEmpty()) return null;
+                    
+                    Label label = questionLabelsForLabel.get(0).getLabel();
+                    Long questionCount = (long) questionLabelsForLabel.size();
+                    Long primaryCount = questionLabelsForLabel.stream()
+                        .filter(ql -> ql.getIsPrimary())
+                        .count();
+                    Long secondaryCount = questionCount - primaryCount;
+                    
+                    String uri = "/api/v1/coding-questions/label/" + label.getUrlSlug();
+                    
+                    return new QuestionsOverallStatisticsDto.TagStatistic(
+                        label.getName(), label.getCategory().getCode(), questionCount, uri);
+                })
+                .filter(stat -> stat != null)
+                .sorted((t1, t2) -> t2.getQuestionCount().compareTo(t1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByTag(tagStats);
+        
+        // Most used tag
+        if (!tagStats.isEmpty()) {
+            stats.setMostUsedTag(tagStats.get(0).getLabelName());
+        }
+        
+        // Category Statistics
+        Map<String, List<QuestionLabel>> categoryGroupMap = allQuestionLabels.stream()
+                .collect(Collectors.groupingBy(ql -> ql.getLabel().getCategory().getId()));
+        
+        List<QuestionsOverallStatisticsDto.CategoryStatistic> categoryStats = categoryGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String categoryId = entry.getKey();
+                    List<QuestionLabel> questionLabelsForCategory = entry.getValue();
+                    
+                    if (questionLabelsForCategory.isEmpty()) return null;
+                    
+                    LabelCategory category = questionLabelsForCategory.get(0).getLabel().getCategory();
+                    Long questionCount = questionLabelsForCategory.stream()
+                        .map(ql -> ql.getQuestion().getId())
+                        .distinct()
+                        .count();
+                    
+                    Set<String> uniqueLabels = questionLabelsForCategory.stream()
+                        .map(ql -> ql.getLabel().getId())
+                        .collect(Collectors.toSet());
+                    
+                    List<String> topLabels = questionLabelsForCategory.stream()
+                        .collect(Collectors.groupingBy(ql -> ql.getLabel().getName(), Collectors.counting()))
+                        .entrySet().stream()
+                        .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
+                        .limit(5)
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
+                    
+                    return new QuestionsOverallStatisticsDto.CategoryStatistic(
+                        categoryId, category.getName(), category.getCode(),
+                        questionCount, (long) uniqueLabels.size(), topLabels);
+                })
+                .filter(stat -> stat != null)
+                .sorted((c1, c2) -> c2.getQuestionCount().compareTo(c1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByCategory(categoryStats);
+        stats.setTotalCategories((long) categoryStats.size());
+        
+        // Company Statistics
+        Set<String> uniqueCompanyIds = allQuestionCompanies.stream()
+                .map(qc -> qc.getCompanyLabel().getId())
+                .collect(Collectors.toSet());
+        stats.setTotalCompanies((long) uniqueCompanyIds.size());
+        
+        long questionsWithCompanies = allQuestionCompanies.stream()
+                .map(qc -> qc.getQuestion().getId())
+                .distinct()
+                .count();
+        stats.setQuestionsWithCompanies(questionsWithCompanies);
+        stats.setQuestionsWithoutCompanies(stats.getTotalQuestions() - questionsWithCompanies);
+        
+        // Questions by Company
+        Map<String, List<QuestionCompany>> companyGroupMap = allQuestionCompanies.stream()
+                .collect(Collectors.groupingBy(qc -> qc.getCompanyLabel().getId()));
+        
+        List<QuestionsOverallStatisticsDto.CompanyStatistic> companyStats = companyGroupMap.entrySet().stream()
+                .map(entry -> {
+                    String companyLabelId = entry.getKey();
+                    List<QuestionCompany> questionCompaniesForLabel = entry.getValue();
+                    
+                    if (questionCompaniesForLabel.isEmpty()) return null;
+                    
+                    Label companyLabel = questionCompaniesForLabel.get(0).getCompanyLabel();
+                    Long questionCount = (long) questionCompaniesForLabel.size();
+                    
+                    String uri = "/api/v1/coding-questions/company/" + companyLabel.getUrlSlug();
+                    
+                    return new QuestionsOverallStatisticsDto.CompanyStatistic(
+                        companyLabel.getName(), questionCount, uri);
+                })
+                .filter(stat -> stat != null)
+                .sorted((c1, c2) -> c2.getQuestionCount().compareTo(c1.getQuestionCount()))
+                .collect(Collectors.toList());
+        stats.setQuestionsByCompany(companyStats);
+        
+        // Most asking company
+        if (!companyStats.isEmpty()) {
+            stats.setMostAskingCompany(companyStats.get(0).getCompanyName());
+        }
+        
+        return stats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean checkTitleAvailability(String title, String sourceId) {
+        log.info("Checking title availability: {} for source: {}", title, sourceId);
+        return !codingQuestionRepository.existsByTitleAndSourceId(title, sourceId);
+    }
+
+    @Override
+    public void addLabelToQuestion(QuestionLabelCreateDto createDto) {
+        log.info("Adding label {} to question {}", createDto.getLabelId(), createDto.getQuestionId());
+        
+        // Validate question exists
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(createDto.getQuestionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found with ID: " + createDto.getQuestionId()));
+        
+        // Validate label exists
+        Label label = labelRepository.findByIdAndNotDeleted(createDto.getLabelId())
+                .orElseThrow(() -> new ResourceNotFoundException("Label not found with ID: " + createDto.getLabelId()));
+        
+        // Check if relationship already exists
+        if (questionLabelRepository.existsByQuestionIdAndLabelId(createDto.getQuestionId(), createDto.getLabelId())) {
+            throw new DuplicateResourceException("Question-label relationship already exists");
+        }
+        
+        QuestionLabel questionLabel = new QuestionLabel(question, label, 
+                createDto.getRelevanceScore(), createDto.getIsPrimary());
+        questionLabel.setNotes(createDto.getNotes());
+        
+        questionLabelRepository.save(questionLabel);
+        log.info("Successfully added label to question");
+    }
+
+    @Override
+    public void addLabelsToQuestion(QuestionLabelBulkCreateDto bulkCreateDto) {
+        log.info("Adding {} labels to question {}", 
+                bulkCreateDto.getLabelAssignments().size(), bulkCreateDto.getQuestionId());
+        
+        // Validate question exists
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(bulkCreateDto.getQuestionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found with ID: " + bulkCreateDto.getQuestionId()));
+        
+        for (QuestionLabelBulkCreateDto.LabelAssignment assignment : bulkCreateDto.getLabelAssignments()) {
+            // Validate label exists
+            Label label = labelRepository.findByIdAndNotDeleted(assignment.getLabelId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Label not found with ID: " + assignment.getLabelId()));
+            
+            // Skip if relationship already exists
+            if (!questionLabelRepository.existsByQuestionIdAndLabelId(bulkCreateDto.getQuestionId(), assignment.getLabelId())) {
+                QuestionLabel questionLabel = new QuestionLabel(question, label, 
+                        assignment.getRelevanceScore(), assignment.getIsPrimary());
+                questionLabel.setNotes(assignment.getNotes());
+                questionLabelRepository.save(questionLabel);
+            }
+        }
+        log.info("Successfully added labels to question");
+    }
+
+    @Override
+    public void removeLabelFromQuestion(String questionId, String labelId) {
+        log.info("Removing label {} from question {}", labelId, questionId);
+        
+        QuestionLabel questionLabel = questionLabelRepository.findByQuestionIdAndLabelId(questionId, labelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question-label relationship not found"));
+        
+        questionLabel.setDeleted(true);
+        questionLabelRepository.save(questionLabel);
+        log.info("Successfully removed label from question");
+    }
+
+    @Override
+    public void addCompanyToQuestion(QuestionCompanyCreateDto createDto) {
+        log.info("Adding company {} to question {}", createDto.getCompanyLabelId(), createDto.getQuestionId());
+        
+        // Validate question exists
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(createDto.getQuestionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found with ID: " + createDto.getQuestionId()));
+        
+        // Validate company label exists
+        Label companyLabel = labelRepository.findByIdAndNotDeleted(createDto.getCompanyLabelId())
+                .orElseThrow(() -> new ResourceNotFoundException("Company label not found with ID: " + createDto.getCompanyLabelId()));
+        
+        // Check if relationship already exists
+        if (questionCompanyRepository.existsByQuestionIdAndCompanyLabelId(createDto.getQuestionId(), createDto.getCompanyLabelId())) {
+            throw new DuplicateResourceException("Question-company relationship already exists");
+        }
+        
+        QuestionCompany questionCompany = new QuestionCompany(question, companyLabel);
+        questionCompany.setFrequencyScore(createDto.getFrequencyScore());
+        if (createDto.getInterviewRound() != null && !createDto.getInterviewRound().trim().isEmpty()) {
+            questionCompany.setInterviewRound(QuestionCompany.InterviewRound.valueOf(createDto.getInterviewRound()));
+        }
+        questionCompany.setLastAskedYear(createDto.getLastAskedYear());
+        questionCompany.setLastAskedDate(createDto.getLastAskedDate());
+        questionCompany.setNotes(createDto.getNotes());
+        questionCompany.setIsVerified(createDto.getIsVerified());
+        
+        questionCompanyRepository.save(questionCompany);
+        log.info("Successfully added company to question");
+    }
+
+    @Override
+    public void removeCompanyFromQuestion(String questionId, String companyLabelId) {
+        log.info("Removing company {} from question {}", companyLabelId, questionId);
+        
+        QuestionCompany questionCompany = questionCompanyRepository.findByQuestionIdAndCompanyLabelId(questionId, companyLabelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question-company relationship not found"));
+        
+        questionCompany.setDeleted(true);
+        questionCompanyRepository.save(questionCompany);
+        log.info("Successfully removed company from question");
+    }
+
+    // Helper methods for conversion
+    private CodingQuestionDto convertToDto(CodingQuestion question) {
+        CodingQuestionDto dto = new CodingQuestionDto();
+        dto.setId(question.getId());
+        dto.setTitle(question.getTitle());
+        dto.setShortDescription(question.getShortDescription());
+        
+        if (question.getDifficultyLabel() != null) {
+            LabelSummaryDto difficultyDto = new LabelSummaryDto();
+            difficultyDto.setName(question.getDifficultyLabel().getName());
+            difficultyDto.setQuestionUri("/api/v1/coding-questions/difficulty/" + question.getDifficultyLabel().getUrlSlug());
+            dto.setDifficultyLabel(difficultyDto);
+        }
+        
+        if (question.getSource() != null) {
+            SourceSummaryDto sourceDto = new SourceSummaryDto();
+            sourceDto.setName(question.getSource().getName());
+            sourceDto.setQuestionUri("/api/v1/coding-questions/source/" + question.getSource().getUrlSlug());
+            dto.setSource(sourceDto);
+        }
+        
+        dto.setPlatformQuestionId(question.getPlatformQuestionId());
+        dto.setOriginalUrl(question.getOriginalUrl());
+        dto.setStatus(question.getStatus().toString());
+        dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
+        
+        // Use URL slug if available, otherwise fallback to ID for content URL
+        String identifier = question.getUrlSlug() != null ? question.getUrlSlug() : question.getId();
+        dto.setContentUrl("/api/v1/coding-questions/" + identifier + "/content");
+        
+        dto.setVersion(question.getVersion());
+
+        // Populate associated labels/tags
+        if (question.getQuestionLabels() != null && !question.getQuestionLabels().isEmpty()) {
+            List<LabelSummaryDto> tags = question.getQuestionLabels().stream()
+                    .filter(ql -> !ql.getDeleted())
+                    .map(ql -> {
+                        LabelSummaryDto tagDto = new LabelSummaryDto();
+                        tagDto.setName(ql.getLabel().getName());
+                        tagDto.setCategoryCode(ql.getLabel().getCategory().getCode());
+                        tagDto.setQuestionUri("/api/v1/coding-questions/label/" + ql.getLabel().getUrlSlug());
+                        return tagDto;
+                    })
+                    .toList();
+            dto.setTags(tags);
+        }
+
+        // Populate associated companies
+        if (question.getQuestionCompanies() != null && !question.getQuestionCompanies().isEmpty()) {
+            List<LabelSummaryDto> companies = question.getQuestionCompanies().stream()
+                    .filter(qc -> !qc.getDeleted())
+                    .map(qc -> {
+                        LabelSummaryDto companyDto = new LabelSummaryDto();
+                        companyDto.setName(qc.getCompanyLabel().getName());
+                        companyDto.setCategoryCode(qc.getCompanyLabel().getCategory().getCode());
+                        companyDto.setQuestionUri("/api/v1/coding-questions/company/" + qc.getCompanyLabel().getUrlSlug());
+                        return companyDto;
+                    })
+                    .toList();
+            dto.setCompanies(companies);
+        }
+
+        return dto;
+    }
+
+    private CodingQuestionSummaryDto convertToSummaryDto(CodingQuestion question) {
+        CodingQuestionSummaryDto dto = new CodingQuestionSummaryDto();
+        dto.setId(question.getId());
+        dto.setTitle(question.getTitle());
+        dto.setShortDescription(question.getShortDescription());
+        
+        if (question.getDifficultyLabel() != null) {
+            LabelSummaryDto difficultyDto = new LabelSummaryDto();
+            difficultyDto.setName(question.getDifficultyLabel().getName());
+            difficultyDto.setQuestionUri("/api/v1/coding-questions/difficulty/" + question.getDifficultyLabel().getUrlSlug());
+            dto.setDifficultyLabel(difficultyDto);
+        }
+        
+        if (question.getSource() != null) {
+            dto.setSourceName(question.getSource().getName());
+        }
+        dto.setStatus(question.getStatus().toString());
+        dto.setUri("/api/v1/coding-questions/" + question.getUrlSlug());
+        
+        // Use URL slug if available, otherwise fallback to ID for content URL
+        String identifier = question.getUrlSlug() != null ? question.getUrlSlug() : question.getId();
+        dto.setContentUrl("/api/v1/coding-questions/" + identifier + "/content");
+
+        return dto;
+    }
+
+    @Override
+    public String getQuestionContent(String id) throws Exception {
+        log.info("Fetching content for question ID: {}", id);
+        
+        // First get the question to retrieve the file path
+        CodingQuestion question = codingQuestionRepository.findByIdAndNotDeleted(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with ID: " + id));
+        
+        String filePath = question.getFilePath();
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalStateException("No file path found for question ID: " + id);
+        }
+        
+        // Read the file content
+        try {
+            // Remove "src/main/resources/" prefix if present, as ClassPathResource looks in classpath
+            String resourcePath = filePath;
+            if (resourcePath.startsWith("src/main/resources/")) {
+                resourcePath = resourcePath.substring("src/main/resources/".length());
+            }
+            
+            // Use ClassPathResource to read from resources folder
+            ClassPathResource resource = new ClassPathResource(resourcePath);
+            if (!resource.exists()) {
+                throw new FileNotFoundException("Question file not found: " + filePath);
+            }
+            
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            log.error("Error reading question content file: {}", filePath, e);
+            throw new Exception("Failed to read question content: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getQuestionContentByUrlSlug(String urlSlug) throws Exception {
+        log.info("Fetching content for question URL slug: {}", urlSlug);
+        
+        // First get the question to retrieve the file path
+        CodingQuestion question = codingQuestionRepository.findByUrlSlug(urlSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Coding question not found with URL slug: " + urlSlug));
+        
+        String filePath = question.getFilePath();
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalStateException("No file path found for question URL slug: " + urlSlug);
+        }
+        
+        // Read the file content
+        try {
+            // Remove "src/main/resources/" prefix if present, as ClassPathResource looks in classpath
+            String resourcePath = filePath;
+            if (resourcePath.startsWith("src/main/resources/")) {
+                resourcePath = resourcePath.substring("src/main/resources/".length());
+            }
+            
+            // Use ClassPathResource to read from resources folder
+            ClassPathResource resource = new ClassPathResource(resourcePath);
+            if (!resource.exists()) {
+                throw new FileNotFoundException("Question file not found: " + filePath);
+            }
+            
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            log.error("Error reading question content file: {}", filePath, e);
+            throw new Exception("Failed to read question content: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Generate unique URL slug for new entities
+     */
+    private String generateUniqueSlug(String baseSlug) {
+        return generateUniqueSlug(baseSlug, null);
+    }
+
+    /**
+     * Generate unique URL slug, excluding a specific entity ID
+     */
+    private String generateUniqueSlug(String baseSlug, String excludeId) {
+        String slug = baseSlug;
+        int counter = 1;
+        
+        while (excludeId != null ? 
+               codingQuestionRepository.existsByUrlSlugAndIdNot(slug, excludeId) : 
+               codingQuestionRepository.existsByUrlSlug(slug)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+        
+        return slug;
+    }
+}

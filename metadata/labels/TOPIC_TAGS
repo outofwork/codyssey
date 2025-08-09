@@ -1,0 +1,32 @@
+TOPIC_TAGS
+├── Recursion
+│   ├── Backtracking
+│   ├── Top-down Approach
+│   └── Memoization
+├── Dynamic Programming Paradigms
+│   ├── Bottom-up Approach
+│   ├── State Compression
+│   └── Space Optimization
+├── Bitwise Techniques
+│   ├── Bit Manipulation
+│   └── Bitmasking
+├── Pointer Techniques
+│   ├── Two Pointers
+│   └── Fast and Slow Pointers
+├── Range Techniques
+│   ├── Prefix Sum
+│   ├── Difference Array
+│   └── Sliding Window
+│       └── Sliding Range Queries
+├── Binary Search Techniques
+│   └── Binary Search on Answer
+├── Search Paradigms
+│   ├── Brute Force
+│   ├── Meet in the Middle
+│   └── Pattern Matching
+├── Optimization Strategies
+│   ├── Greedy
+│   └── In-place Operations
+├── Simulation
+├── Math Tricks
+├── Game Theory

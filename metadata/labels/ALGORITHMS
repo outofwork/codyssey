@@ -1,0 +1,68 @@
+Algorithms
+├── Sorting
+│   ├── Bubble Sort
+│   ├── Insertion Sort
+│   ├── Selection Sort
+│   ├── Merge Sort
+│   ├── Quick Sort
+│   ├── Heap Sort
+│   ├── Radix Sort
+│   └── Counting Sort
+├── Searching
+│   ├── Linear Search
+│   ├── Binary Search
+│   ├── Exponential Search
+│   └── Ternary Search
+├── Recursion
+├── Backtracking
+│   ├── N-Queens
+│   ├── Sudoku Solver
+│   └── Word Search
+├── Dynamic Programming
+│   ├── 0/1 Knapsack
+│   ├── Longest Common Subsequence
+│   ├── Longest Increasing Subsequence
+│   ├── Matrix Chain Multiplication
+│   └── DP on Trees
+├── Greedy
+│   ├── Activity Selection
+│   ├── Huffman Encoding
+│   ├── Job Scheduling
+│   └── Coin Change (Greedy variant)
+├── Graph Algorithms
+│   ├── BFS (Breadth-First Search)
+│   ├── DFS (Depth-First Search)
+│   ├── Dijkstras Algorithm
+│   ├── Bellman-Ford
+│   ├── Floyd-Warshall
+│   ├── Topological Sort
+│   ├── Union-Find
+│   └── Kruskals / Prims (MST)
+├── Bit Manipulation
+│   ├── XOR Tricks
+│   ├── Set/Clear/Toggle Bit
+│   └── Bitmasking
+├── Two Pointers
+├── Sliding Window
+├── Divide and Conquer
+├── Binary Search on Answer
+├── Math
+│   ├── GCD / LCM
+│   ├── Modular Arithmetic
+│   ├── Prime Number Algorithms (Sieve of Eratosthenes)
+│   ├── Combinatorics
+│   └── Number Theory
+├── String Algorithms
+│   ├── KMP (Knuth-Morris-Pratt)
+│   ├── Rabin-Karp
+│   ├── Z-Algorithm
+│   └── Manachers Algorithm
+├── Tree / Graph Traversals
+├── Randomized Algorithms
+├── Sliding Window
+├── Monotonic Stack / Queue
+├── Game Theory / Minimax
+├── Fast Exponentiation
+├── Geometry Algorithms
+│   ├── Convex Hull
+│   └── Line Intersection
