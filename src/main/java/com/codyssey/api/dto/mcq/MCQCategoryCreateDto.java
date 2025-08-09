@@ -7,20 +7,20 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Data Transfer Object for creating MCQ Label association
+ * Data Transfer Object for creating MCQ Category association
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MCQLabelCreateDto {
+public class MCQCategoryCreateDto {
 
     private String mcqQuestionId;
 
-    @NotBlank(message = "Label ID is required")
-    private String labelId;
+    @NotBlank(message = "Category ID is required")
+    private String categoryId;
 
-    public MCQLabelCreateDto(String labelId) {
-        this.labelId = labelId;
+    public MCQCategoryCreateDto(String categoryId) {
+        this.categoryId = categoryId;
     }
 }

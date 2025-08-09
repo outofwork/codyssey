@@ -12,9 +12,14 @@ import java.util.List;
 public interface MCQQuestionService {
 
     /**
-     * Create a new MCQ question
+     * Create a new MCQ question (simple creation)
      */
     MCQQuestionDto createMCQQuestion(MCQQuestionCreateDto createDto);
+
+    /**
+     * Create a new MCQ question with multiple categories and labels
+     */
+    MCQQuestionDto createMCQQuestionBulk(MCQBulkCreateDto createDto);
 
     /**
      * Get MCQ question by ID
@@ -130,4 +135,103 @@ public interface MCQQuestionService {
      * Get MCQ questions count by label hierarchy (using label slug)
      */
     long getMCQQuestionCountByLabelHierarchySlug(String labelSlug);
+
+    // Category-based methods
+
+    /**
+     * Get MCQ questions by category (using category ID)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByCategory(String categoryId);
+
+    /**
+     * Get MCQ questions by category (using category slug)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByCategorySlug(String categorySlug);
+
+    /**
+     * Get MCQ questions by category with pagination (using category ID)
+     */
+    Page<MCQQuestionSummaryDto> getMCQQuestionsByCategory(String categoryId, Pageable pageable);
+
+    /**
+     * Get MCQ questions by category with pagination (using category slug)
+     */
+    Page<MCQQuestionSummaryDto> getMCQQuestionsByCategorySlug(String categorySlug, Pageable pageable);
+
+    /**
+     * Get random MCQ questions by category (using category ID)
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsByCategory(String categoryId, int count);
+
+    /**
+     * Get random MCQ questions by category (using category slug)
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsByCategorySlug(String categorySlug, int count);
+
+    /**
+     * Get MCQ questions count by category (using category ID)
+     */
+    long getMCQQuestionCountByCategory(String categoryId);
+
+    /**
+     * Get MCQ questions count by category (using category slug)
+     */
+    long getMCQQuestionCountByCategorySlug(String categorySlug);
+
+    // Enhanced hierarchical methods
+
+    /**
+     * Get MCQ questions with full hierarchical access (includes category fallback)
+     * This returns MCQs that should be accessible when querying a specific label
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsWithHierarchicalAccess(String labelSlug);
+
+    /**
+     * Get random MCQ questions with full hierarchical access
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsWithHierarchicalAccess(String labelSlug, int count);
+
+    /**
+     * Get MCQ questions count with full hierarchical access
+     */
+    long getMCQQuestionCountWithHierarchicalAccess(String labelSlug);
+
+    // MCQ Category management methods
+
+    /**
+     * Add category to MCQ question
+     */
+    MCQCategoryReferenceDto addCategoryToMCQQuestion(MCQCategoryCreateDto createDto);
+
+    /**
+     * Remove category from MCQ question
+     */
+    void removeCategoryFromMCQQuestion(String mcqQuestionId, String categoryId);
+
+    /**
+     * Update MCQ category association
+     */
+    MCQCategoryReferenceDto updateMCQCategoryAssociation(String mcqCategoryId, MCQCategoryCreateDto updateDto);
+
+    /**
+     * Get MCQ categories for a question
+     */
+    List<MCQCategoryReferenceDto> getMCQCategoriesForQuestion(String mcqQuestionId);
+
+    // Enhanced multi-category and multi-label queries
+
+    /**
+     * Find MCQ questions by multiple categories
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByMultipleCategories(List<String> categoryIds);
+
+    /**
+     * Find MCQ questions by multiple labels
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByMultipleLabels(List<String> labelIds);
+
+    /**
+     * Find MCQ questions by multiple categories and labels (intersection)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByMultipleCategoriesAndLabels(List<String> categoryIds, List<String> labelIds);
 }

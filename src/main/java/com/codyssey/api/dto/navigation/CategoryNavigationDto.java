@@ -19,5 +19,5 @@ public class CategoryNavigationDto {
     private String code;
     private String description;
     private String urlSlug;
-    private Long labelCount;
+    private long labelCount;
 }

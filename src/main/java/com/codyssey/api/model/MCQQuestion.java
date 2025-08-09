@@ -116,7 +116,15 @@ public class MCQQuestion extends BaseEntity {
     private User createdByUser;
 
     /**
-     * Associated labels/tags (Data Structures, Algorithms, Topics, etc.)
+     * Associated categories (Data Structures, Algorithms, etc.)
+     * Multiple categories can be associated with different relevance scores
+     */
+    @OneToMany(mappedBy = "mcqQuestion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<MCQCategory> mcqCategories;
+
+    /**
+     * Associated labels/tags (Binary Tree, Recursion, Search, etc.)
+     * Multiple labels can be associated with different relevance scores
      */
     @OneToMany(mappedBy = "mcqQuestion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<MCQLabel> mcqLabels;

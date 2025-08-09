@@ -31,6 +31,7 @@ public class MCQQuestionDto {
     private LabelSummaryDto difficultyLabel;
     private MCQQuestion.MCQStatus status;
     private UserDto createdByUser;
+    private List<MCQCategoryReferenceDto> mcqCategories;
     private List<MCQLabelReferenceDto> mcqLabels;
     private String urlSlug;
     private LocalDateTime createdAt;

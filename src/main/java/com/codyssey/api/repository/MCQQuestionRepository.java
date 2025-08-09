@@ -128,4 +128,105 @@ public interface MCQQuestionRepository extends JpaRepository<MCQQuestion, String
            "(SELECT child.id FROM Label child WHERE child.parent.id = :labelId)) " +
            "AND mcq.status = :status")
     long countByLabelHierarchyAndStatus(@Param("labelId") String labelId, @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Find MCQ questions by category (through MCQCategory relationship)
+     */
+    @Query("SELECT DISTINCT mcq FROM MCQQuestion mcq " +
+           "JOIN mcq.mcqCategories mc " +
+           "WHERE mc.category.id = :categoryId AND mcq.status = :status")
+    List<MCQQuestion> findByCategoryAndStatus(@Param("categoryId") String categoryId, 
+                                             @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Find MCQ questions by category with pagination (through MCQCategory relationship)
+     */
+    @Query("SELECT DISTINCT mcq FROM MCQQuestion mcq " +
+           "JOIN mcq.mcqCategories mc " +
+           "WHERE mc.category.id = :categoryId AND mcq.status = :status")
+    Page<MCQQuestion> findByCategoryAndStatus(@Param("categoryId") String categoryId, 
+                                             @Param("status") MCQQuestion.MCQStatus status,
+                                             Pageable pageable);
+
+    /**
+     * Count MCQ questions by category (through MCQCategory relationship)
+     */
+    @Query("SELECT COUNT(DISTINCT mcq) FROM MCQQuestion mcq " +
+           "JOIN mcq.mcqCategories mc " +
+           "WHERE mc.category.id = :categoryId AND mcq.status = :status")
+    long countByCategoryAndStatus(@Param("categoryId") String categoryId, @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Find random MCQ questions by category (through MCQCategory relationship)
+     */
+    @Query(value = "SELECT DISTINCT mcq.* FROM mcq_questions mcq " +
+                   "JOIN mcq_categories mc ON mcq.id = mc.mcq_question_id " +
+                   "WHERE mc.category_id = :categoryId AND mcq.status = :status " +
+                   "ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<MCQQuestion> findRandomByCategory(@Param("categoryId") String categoryId, 
+                                          @Param("status") String status, 
+                                          @Param("limit") int limit);
+
+    /**
+     * Find MCQ questions accessible through label hierarchy (including category and all parent labels)
+     * This query returns MCQs that should be available when querying a specific label,
+     * including MCQs from the label's category and parent labels
+     */
+    @Query("SELECT DISTINCT mcq FROM MCQQuestion mcq " +
+           "LEFT JOIN mcq.mcqLabels ml " +
+           "LEFT JOIN mcq.mcqCategories mc " +
+           "LEFT JOIN ml.label l " +
+           "WHERE (mc.category.id = :categoryId OR " +
+           "       ml.label.id = :labelId OR " +
+           "       ml.label.parent.id = :labelId OR " +
+           "       ml.label.id IN (SELECT child.id FROM Label child WHERE child.parent.id = :labelId)) " +
+           "AND mcq.status = :status")
+    List<MCQQuestion> findByLabelWithCategoryFallback(@Param("labelId") String labelId,
+                                                     @Param("categoryId") String categoryId,
+                                                     @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Count MCQ questions accessible through label hierarchy (including category fallback)
+     */
+    @Query("SELECT COUNT(DISTINCT mcq) FROM MCQQuestion mcq " +
+           "LEFT JOIN mcq.mcqLabels ml " +
+           "LEFT JOIN mcq.mcqCategories mc " +
+           "LEFT JOIN ml.label l " +
+           "WHERE (mc.category.id = :categoryId OR " +
+           "       ml.label.id = :labelId OR " +
+           "       ml.label.parent.id = :labelId OR " +
+           "       ml.label.id IN (SELECT child.id FROM Label child WHERE child.parent.id = :labelId)) " +
+           "AND mcq.status = :status")
+    long countByLabelWithCategoryFallback(@Param("labelId") String labelId,
+                                         @Param("categoryId") String categoryId,
+                                         @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Find MCQ questions by multiple categories
+     */
+    @Query("SELECT DISTINCT mcq FROM MCQQuestion mcq " +
+           "JOIN mcq.mcqCategories mc " +
+           "WHERE mc.category.id IN :categoryIds AND mcq.status = :status")
+    List<MCQQuestion> findByMultipleCategoriesAndStatus(@Param("categoryIds") List<String> categoryIds, 
+                                                       @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Find MCQ questions by multiple labels
+     */
+    @Query("SELECT DISTINCT mcq FROM MCQQuestion mcq " +
+           "JOIN mcq.mcqLabels ml " +
+           "WHERE ml.label.id IN :labelIds AND mcq.status = :status")
+    List<MCQQuestion> findByMultipleLabelsAndStatus(@Param("labelIds") List<String> labelIds, 
+                                                   @Param("status") MCQQuestion.MCQStatus status);
+
+    /**
+     * Find MCQ questions by multiple categories and labels (intersection)
+     */
+    @Query("SELECT DISTINCT mcq FROM MCQQuestion mcq " +
+           "JOIN mcq.mcqCategories mc " +
+           "JOIN mcq.mcqLabels ml " +
+           "WHERE mc.category.id IN :categoryIds AND ml.label.id IN :labelIds AND mcq.status = :status")
+    List<MCQQuestion> findByMultipleCategoriesAndLabelsAndStatus(@Param("categoryIds") List<String> categoryIds,
+                                                               @Param("labelIds") List<String> labelIds,
+                                                               @Param("status") MCQQuestion.MCQStatus status);
 }

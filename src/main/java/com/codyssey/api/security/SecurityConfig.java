@@ -75,6 +75,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/v1/sources/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/sources/**").authenticated()
                         
+                        // Allow public access to MCQ search endpoints
+                        .requestMatchers(HttpMethod.POST, "/v1/mcq/search/**").permitAll()
+                        // Require auth for MCQ management
                         .requestMatchers(HttpMethod.POST, "/v1/mcq/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/v1/mcq/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/v1/mcq/**").authenticated()
