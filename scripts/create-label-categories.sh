@@ -119,6 +119,17 @@ curl -X POST "$BASE_URL" \
   }'
 echo -e "\n"
 
+# 11. System Design
+echo "Creating System Design category..."
+curl -X POST "$BASE_URL" \
+  -H "$CONTENT_TYPE" \
+  -d '{
+    "name": "System Design",
+    "code": "SYSTEM_DESIGN", 
+    "description": "Categories for system design concepts including scalability, distributed systems, architecture patterns, and infrastructure components."
+  }'
+echo -e "\n"
+
 echo "================================"
 echo "Label Categories creation completed!"
 echo "You can verify by running: curl http://localhost:8080/api/v1/labelcategories"

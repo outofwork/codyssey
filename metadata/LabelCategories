@@ -48,5 +48,10 @@
     "name": "Frequency / Popularity",
     "category": "FREQUENCY_POPULARITY",
     "description": "Indicates how frequently a question is asked or its signal strength, like Most Frequently Asked, High Signal, Rarely Asked."
+  },
+  {
+    "name": "System Design",
+    "category": "SYSTEM_DESIGN",
+    "description": "Categories for system design concepts including scalability, distributed systems, architecture patterns, and infrastructure components."
   }
 ]

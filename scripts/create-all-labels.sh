@@ -81,6 +81,10 @@ echo "2.5: Creating TOPIC_TAGS labels..."
 ./scripts/create-labels-topic-tags.sh
 echo ""
 
+echo "2.6: Creating SYSTEM_DESIGN labels..."
+./scripts/create-labels-system-design.sh
+echo ""
+
 echo "Step 2 completed! ✅"
 echo ""
 
@@ -90,8 +94,8 @@ echo "---------------------"
 echo "Checking created labels count per category..."
 
 # Get label counts for each category
-categories=("CAT-100001" "CAT-100002" "CAT-100003" "CAT-100004" "CAT-100005" "CAT-100006" "CAT-100007" "CAT-100008" "CAT-100009" "CAT-100010")
-category_names=("DIFFICULTY_LEVEL" "DATA_STRUCTURES" "ALGORITHMS" "COMPANY_TAGS" "SOURCE" "TOPIC_TAGS" "QUESTION_TYPE" "ENVIRONMENT_ROUND_TYPE" "PROGRAMMING_LANGUAGE_TAGS" "FREQUENCY_POPULARITY")
+categories=("CAT-100001" "CAT-100002" "CAT-100003" "CAT-100004" "CAT-100005" "CAT-100006" "CAT-100007" "CAT-100008" "CAT-100009" "CAT-100010" "CAT-100011")
+category_names=("DIFFICULTY_LEVEL" "DATA_STRUCTURES" "ALGORITHMS" "COMPANY_TAGS" "SOURCE" "TOPIC_TAGS" "QUESTION_TYPE" "ENVIRONMENT_ROUND_TYPE" "PROGRAMMING_LANGUAGE_TAGS" "FREQUENCY_POPULARITY" "SYSTEM_DESIGN")
 
 for i in "${!categories[@]}"; do
     category_id="${categories[$i]}"

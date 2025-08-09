@@ -1,0 +1,190 @@
+SYSTEM_DESIGN
+├── Scalability
+│   ├── Horizontal Scaling
+│   ├── Vertical Scaling
+│   ├── Auto Scaling
+│   └── Load Testing
+├── Load Balancing
+│   ├── Layer 4 Load Balancer
+│   ├── Layer 7 Load Balancer
+│   ├── Round Robin
+│   ├── Weighted Round Robin
+│   ├── Least Connections
+│   ├── IP Hash
+│   └── Geographic Load Balancing
+├── Caching
+│   ├── In-Memory Cache
+│   ├── Distributed Cache
+│   ├── CDN (Content Delivery Network)
+│   ├── Browser Cache
+│   ├── Application Cache
+│   ├── Database Cache
+│   ├── Cache Aside
+│   ├── Write Through
+│   ├── Write Behind
+│   ├── Write Around
+│   └── Cache Invalidation
+├── Database Design
+│   ├── SQL Database
+│   ├── NoSQL Database
+│   │   ├── Document Database
+│   │   ├── Key-Value Store
+│   │   ├── Column Family
+│   │   └── Graph Database
+│   ├── Database Partitioning
+│   │   ├── Horizontal Partitioning (Sharding)
+│   │   ├── Vertical Partitioning
+│   │   ├── Range Based Partitioning
+│   │   ├── Hash Based Partitioning
+│   │   └── Directory Based Partitioning
+│   ├── Database Replication
+│   │   ├── Master-Slave Replication
+│   │   ├── Master-Master Replication
+│   │   └── Read Replicas
+│   ├── ACID Properties
+│   ├── CAP Theorem
+│   ├── Eventual Consistency
+│   ├── Strong Consistency
+│   └── Database Indexing
+├── Microservices Architecture
+│   ├── Service Discovery
+│   ├── API Gateway
+│   ├── Circuit Breaker
+│   ├── Service Mesh
+│   ├── Inter-Service Communication
+│   ├── Event Sourcing
+│   ├── CQRS (Command Query Responsibility Segregation)
+│   └── Saga Pattern
+├── Message Queues & Event Streaming
+│   ├── Message Queue
+│   ├── Publish-Subscribe
+│   ├── Event Streaming
+│   ├── Dead Letter Queue
+│   ├── Message Ordering
+│   ├── Message Deduplication
+│   └── Backpressure Handling
+├── Storage Systems
+│   ├── File Storage
+│   ├── Block Storage
+│   ├── Object Storage
+│   ├── Distributed File System
+│   ├── RAID Configuration
+│   ├── Data Compression
+│   ├── Data Deduplication
+│   └── Cold Storage
+├── Security
+│   ├── Authentication
+│   │   ├── OAuth 2.0
+│   │   ├── JWT (JSON Web Token)
+│   │   ├── SAML
+│   │   ├── Multi-Factor Authentication
+│   │   └── Single Sign-On (SSO)
+│   ├── Authorization
+│   │   ├── Role-Based Access Control (RBAC)
+│   │   ├── Attribute-Based Access Control (ABAC)
+│   │   └── Access Control Lists (ACL)
+│   ├── Encryption
+│   │   ├── Encryption at Rest
+│   │   ├── Encryption in Transit
+│   │   └── End-to-End Encryption
+│   ├── API Security
+│   ├── Rate Limiting
+│   ├── DDoS Protection
+│   └── Security Auditing
+├── Performance & Monitoring
+│   ├── Metrics Collection
+│   ├── Logging
+│   ├── Distributed Tracing
+│   ├── Performance Monitoring
+│   ├── Health Checks
+│   ├── Alerting
+│   ├── SLA (Service Level Agreement)
+│   ├── SLO (Service Level Objective)
+│   └── SLI (Service Level Indicator)
+├── Availability & Reliability
+│   ├── High Availability
+│   ├── Disaster Recovery
+│   ├── Backup and Restore
+│   ├── Failover
+│   ├── Redundancy
+│   ├── Fault Tolerance
+│   ├── Error Handling
+│   ├── Graceful Degradation
+│   └── Circuit Breaker Pattern
+├── Content Delivery & Web Technologies
+│   ├── CDN (Content Delivery Network)
+│   ├── Edge Computing
+│   ├── Reverse Proxy
+│   ├── Web Server
+│   ├── Application Server
+│   ├── Static Site Generation
+│   ├── Server-Side Rendering
+│   ├── Client-Side Rendering
+│   └── Progressive Web Apps
+├── Real-time Systems
+│   ├── WebSockets
+│   ├── Long Polling
+│   ├── Server-Sent Events
+│   ├── Real-time Messaging
+│   ├── Live Video Streaming
+│   ├── Push Notifications
+│   └── Collaborative Editing
+├── Search & Indexing
+│   ├── Full-Text Search
+│   ├── Elasticsearch
+│   ├── Search Indexing
+│   ├── Search Ranking
+│   ├── Faceted Search
+│   ├── Auto-Complete
+│   └── Search Analytics
+├── Data Processing
+│   ├── Batch Processing
+│   ├── Stream Processing
+│   ├── ETL (Extract, Transform, Load)
+│   ├── Data Pipeline
+│   ├── Data Warehouse
+│   ├── Data Lake
+│   ├── MapReduce
+│   ├── Apache Spark
+│   └── Real-time Analytics
+├── Cloud Computing
+│   ├── Infrastructure as a Service (IaaS)
+│   ├── Platform as a Service (PaaS)
+│   ├── Software as a Service (SaaS)
+│   ├── Serverless Computing
+│   ├── Function as a Service (FaaS)
+│   ├── Container Orchestration
+│   ├── Kubernetes
+│   ├── Docker
+│   └── Cloud Storage
+├── API Design
+│   ├── REST API
+│   ├── GraphQL
+│   ├── gRPC
+│   ├── WebSocket API
+│   ├── API Versioning
+│   ├── API Documentation
+│   ├── API Rate Limiting
+│   ├── API Caching
+│   └── API Gateway
+├── Networking
+│   ├── DNS (Domain Name System)
+│   ├── TCP/IP
+│   ├── HTTP/HTTPS
+│   ├── HTTP/2
+│   ├── WebRTC
+│   ├── VPN
+│   ├── Proxy
+│   ├── Firewall
+│   └── Network Latency
+└── System Architecture Patterns
+    ├── Monolithic Architecture
+    ├── Microservices Architecture
+    ├── Service-Oriented Architecture (SOA)
+    ├── Event-Driven Architecture
+    ├── Layered Architecture
+    ├── Hexagonal Architecture
+    ├── Pipeline Architecture
+    ├── Model-View-Controller (MVC)
+    ├── Model-View-ViewModel (MVVM)
+    └── Publisher-Subscriber Pattern
