@@ -100,12 +100,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
         
-        // Skip JWT filter for these paths
+        // Skip JWT filter for these paths (authentication not needed)
         return path.startsWith("/v1/auth/") ||
                path.startsWith("/v1/users/register") ||
                path.startsWith("/v1/users/check-") ||
                path.startsWith("/actuator/") ||
                path.startsWith("/swagger-ui/") ||
                path.startsWith("/v3/api-docs/");
+        
+        // Note: We don't skip GET requests anymore as they might have optional authentication
+        // The filter will handle missing tokens gracefully for guest access
     }
 }
