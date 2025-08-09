@@ -31,6 +31,12 @@ public class QuestionCompanyController {
 
     private final CodingQuestionService codingQuestionService;
 
+    /**
+     * Add company to question
+     * 
+     * @param createDto question-company relationship data
+     * @return 201 Created if successful
+     */
     @Operation(summary = "Add company to question", description = "Creates a relationship between a question and a company")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Question-company relationship created successfully"),
@@ -49,6 +55,13 @@ public class QuestionCompanyController {
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
+    /**
+     * Remove company from question
+     * 
+     * @param questionId question ID
+     * @param companyLabelId company label ID
+     * @return 204 No Content if successful
+     */
     @Operation(summary = "Remove company from question", description = "Removes a relationship between a question and a company")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Question-company relationship removed successfully"),

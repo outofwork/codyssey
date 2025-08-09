@@ -36,6 +36,12 @@ public class SourceController {
 
     private final SourceService sourceService;
 
+    /**
+     * Create a new source
+     * 
+     * @param createDto source creation data
+     * @return created source with HTTP 201 status
+     */
     @Operation(summary = "Create a new source", description = "Creates a new coding question source/platform")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Source created successfully"),
@@ -52,6 +58,11 @@ public class SourceController {
         return new ResponseEntity<>(createdSource, HttpStatus.CREATED);
     }
 
+    /**
+     * Get all sources
+     * 
+     * @return list of all sources
+     */
     @Operation(summary = "Get all sources", description = "Retrieves all non-deleted sources")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Sources retrieved successfully")
@@ -63,6 +74,11 @@ public class SourceController {
         return ResponseEntity.ok(sources);
     }
 
+    /**
+     * Get active sources
+     * 
+     * @return list of active sources
+     */
     @Operation(summary = "Get active sources", description = "Retrieves all active, non-deleted sources")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Active sources retrieved successfully")
@@ -74,6 +90,11 @@ public class SourceController {
         return ResponseEntity.ok(sources);
     }
 
+    /**
+     * Get source summaries
+     * 
+     * @return list of source summaries
+     */
     @Operation(summary = "Get source summaries", description = "Retrieves summary information for all sources")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Source summaries retrieved successfully")
@@ -87,6 +108,12 @@ public class SourceController {
 
 
 
+    /**
+     * Get source by code
+     * 
+     * @param code source code
+     * @return source if found, 404 if not found
+     */
     @Operation(summary = "Get source by code", description = "Retrieves a source by its code")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Source found"),
@@ -103,6 +130,12 @@ public class SourceController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Get source by URL slug
+     * 
+     * @param urlSlug source URL slug
+     * @return source if found, 404 if not found
+     */
     @Operation(summary = "Get source by URL slug", description = "Retrieves a source by its SEO-friendly URL slug")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Source found"),
@@ -133,6 +166,13 @@ public class SourceController {
 
 
 
+    /**
+     * Update source
+     * 
+     * @param identifier source URL slug or ID
+     * @param updateDto updated source data
+     * @return updated source
+     */
     @Operation(summary = "Update source", description = "Updates an existing source's properties using URL slug or ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Source updated successfully"),
@@ -158,6 +198,12 @@ public class SourceController {
         }
     }
 
+    /**
+     * Delete source
+     * 
+     * @param identifier source URL slug or ID
+     * @return 204 No Content if successful
+     */
     @Operation(summary = "Delete source", description = "Soft deletes a source by URL slug or ID. Cannot delete if source has questions.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Source deleted successfully"),
@@ -180,6 +226,12 @@ public class SourceController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Search sources
+     * 
+     * @param searchTerm search term for source name
+     * @return list of matching sources
+     */
     @Operation(summary = "Search sources", description = "Search sources by name containing the search term")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Search completed successfully")
@@ -194,6 +246,12 @@ public class SourceController {
         return ResponseEntity.ok(sources);
     }
 
+    /**
+     * Check source code availability
+     * 
+     * @param code source code to check
+     * @return availability status
+     */
     @Operation(summary = "Check source code availability", description = "Check if a source code is available")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Availability checked successfully")
@@ -208,6 +266,12 @@ public class SourceController {
         return ResponseEntity.ok(available);
     }
 
+    /**
+     * Toggle source active status
+     * 
+     * @param id source ID
+     * @return updated source
+     */
     @Operation(summary = "Toggle source active status", description = "Toggle the active status of a source")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Active status toggled successfully"),
@@ -223,6 +287,12 @@ public class SourceController {
         return ResponseEntity.ok(updatedSource);
     }
 
+    /**
+     * Get questions count for source
+     * 
+     * @param id source ID
+     * @return number of questions for the source
+     */
     @Operation(summary = "Get questions count for source", description = "Get the count of questions for a specific source")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Questions count retrieved successfully")

@@ -32,6 +32,12 @@ public class QuestionLabelController {
 
     private final CodingQuestionService codingQuestionService;
 
+    /**
+     * Add label to question
+     * 
+     * @param createDto question-label relationship data
+     * @return 201 Created if successful
+     */
     @Operation(summary = "Add label to question", description = "Creates a relationship between a question and a label")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Question-label relationship created successfully"),
@@ -50,6 +56,12 @@ public class QuestionLabelController {
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
+    /**
+     * Add multiple labels to question
+     * 
+     * @param bulkCreateDto bulk question-label relationship data
+     * @return 201 Created if successful
+     */
     @Operation(summary = "Add multiple labels to question", description = "Creates multiple relationships between a question and labels")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Question-label relationships created successfully"),
@@ -67,6 +79,13 @@ public class QuestionLabelController {
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
+    /**
+     * Remove label from question
+     * 
+     * @param questionId question ID
+     * @param labelId label ID
+     * @return 204 No Content if successful
+     */
     @Operation(summary = "Remove label from question", description = "Removes a relationship between a question and a label")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Question-label relationship removed successfully"),
