@@ -43,6 +43,7 @@ public class SecurityConfig {
                         // Guest access - allow all GET requests without authentication
                         .requestMatchers(HttpMethod.GET, "/v1/users/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/articles/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/system-designs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/coding-questions/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/labels/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/sources/**").permitAll()
@@ -59,6 +60,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/v1/articles/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/v1/articles/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/articles/**").authenticated()
+                        
+                        .requestMatchers(HttpMethod.POST, "/v1/system-designs/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/v1/system-designs/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/v1/system-designs/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/v1/system-designs/**").authenticated()
                         
                         .requestMatchers(HttpMethod.POST, "/v1/coding-questions/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/v1/coding-questions/**").authenticated()
