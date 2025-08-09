@@ -46,6 +46,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/coding-questions/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/labels/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/sources/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/navigation/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/mcq/**").permitAll()
                         
                         // Modification operations - authentication required
                         .requestMatchers(HttpMethod.POST, "/v1/users/**").authenticated()
@@ -72,6 +74,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/v1/sources/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/v1/sources/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/sources/**").authenticated()
+                        
+                        .requestMatchers(HttpMethod.POST, "/v1/mcq/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/v1/mcq/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/v1/mcq/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/v1/mcq/**").authenticated()
                         
                         // Any other request requires authentication
                         .anyRequest().authenticated()

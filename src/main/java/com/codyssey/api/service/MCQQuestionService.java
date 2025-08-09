@@ -1,0 +1,133 @@
+package com.codyssey.api.service;
+
+import com.codyssey.api.dto.mcq.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+
+/**
+ * Service interface for MCQ Question operations
+ */
+public interface MCQQuestionService {
+
+    /**
+     * Create a new MCQ question
+     */
+    MCQQuestionDto createMCQQuestion(MCQQuestionCreateDto createDto);
+
+    /**
+     * Get MCQ question by ID
+     */
+    MCQQuestionDto getMCQQuestionById(String id);
+
+    /**
+     * Get MCQ question by URL slug
+     */
+    MCQQuestionDto getMCQQuestionBySlug(String urlSlug);
+
+    /**
+     * Update MCQ question
+     */
+    MCQQuestionDto updateMCQQuestion(String id, MCQQuestionUpdateDto updateDto);
+
+    /**
+     * Delete MCQ question
+     */
+    void deleteMCQQuestion(String id);
+
+    /**
+     * Get all MCQ questions with pagination
+     */
+    Page<MCQQuestionSummaryDto> getAllMCQQuestions(Pageable pageable);
+
+    /**
+     * Get MCQ questions by label (using label ID)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByLabel(String labelId);
+
+    /**
+     * Get MCQ questions by label (using label slug)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByLabelSlug(String labelSlug);
+
+    /**
+     * Get MCQ questions by label with pagination (using label ID)
+     */
+    Page<MCQQuestionSummaryDto> getMCQQuestionsByLabel(String labelId, Pageable pageable);
+
+    /**
+     * Get MCQ questions by label with pagination (using label slug)
+     */
+    Page<MCQQuestionSummaryDto> getMCQQuestionsByLabelSlug(String labelSlug, Pageable pageable);
+
+    /**
+     * Get MCQ questions by label hierarchy (including children) (using label ID)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByLabelHierarchy(String labelId);
+
+    /**
+     * Get MCQ questions by label hierarchy (including children) (using label slug)
+     */
+    List<MCQQuestionSummaryDto> getMCQQuestionsByLabelHierarchySlug(String labelSlug);
+
+    /**
+     * Get MCQ questions by label hierarchy with pagination (using label ID)
+     */
+    Page<MCQQuestionSummaryDto> getMCQQuestionsByLabelHierarchy(String labelId, Pageable pageable);
+
+    /**
+     * Get MCQ questions by label hierarchy with pagination (using label slug)
+     */
+    Page<MCQQuestionSummaryDto> getMCQQuestionsByLabelHierarchySlug(String labelSlug, Pageable pageable);
+
+    /**
+     * Get random MCQ questions by label (using label ID)
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsByLabel(String labelId, int count);
+
+    /**
+     * Get random MCQ questions by label (using label slug)
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsByLabelSlug(String labelSlug, int count);
+
+    /**
+     * Get random MCQ questions by label hierarchy (using label ID)
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsByLabelHierarchy(String labelId, int count);
+
+    /**
+     * Get random MCQ questions by label hierarchy (using label slug)
+     */
+    List<MCQQuestionSummaryDto> getRandomMCQQuestionsByLabelHierarchySlug(String labelSlug, int count);
+
+    /**
+     * Add label to MCQ question
+     */
+    MCQLabelReferenceDto addLabelToMCQQuestion(MCQLabelCreateDto createDto);
+
+    /**
+     * Remove label from MCQ question
+     */
+    void removeLabelFromMCQQuestion(String mcqQuestionId, String labelId);
+
+    /**
+     * Get MCQ questions count by label (using label ID)
+     */
+    long getMCQQuestionCountByLabel(String labelId);
+
+    /**
+     * Get MCQ questions count by label (using label slug)
+     */
+    long getMCQQuestionCountByLabelSlug(String labelSlug);
+
+    /**
+     * Get MCQ questions count by label hierarchy (using label ID)
+     */
+    long getMCQQuestionCountByLabelHierarchy(String labelId);
+
+    /**
+     * Get MCQ questions count by label hierarchy (using label slug)
+     */
+    long getMCQQuestionCountByLabelHierarchySlug(String labelSlug);
+}

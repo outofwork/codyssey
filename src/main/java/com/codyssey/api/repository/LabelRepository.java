@@ -187,4 +187,49 @@ public interface LabelRepository extends JpaRepository<Label, String> {
      */
     @Query("SELECT l FROM Label l WHERE l.parent IS NULL AND l.deleted = false ORDER BY l.category.name, l.name")
     List<Label> findHierarchy();
+
+    /**
+     * Find labels by category ID and active status, ordered by name
+     *
+     * @param categoryId the category ID
+     * @param active the active status
+     * @return List of labels
+     */
+    @Query("SELECT l FROM Label l WHERE l.category.id = :categoryId AND l.active = :active AND l.deleted = false ORDER BY l.name")
+    List<Label> findByCategoryIdAndActiveOrderByName(@Param("categoryId") String categoryId, @Param("active") Boolean active);
+
+    /**
+     * Find labels by category ID, parent ID, and active status, ordered by name
+     *
+     * @param categoryId the category ID
+     * @param parentId the parent ID (can be null)
+     * @param active the active status
+     * @return List of labels
+     */
+    @Query("SELECT l FROM Label l WHERE l.category.id = :categoryId AND " +
+           "(:parentId IS NULL AND l.parent IS NULL OR l.parent.id = :parentId) AND " +
+           "l.active = :active AND l.deleted = false ORDER BY l.name")
+    List<Label> findByCategoryIdAndParentIdAndActiveOrderByName(@Param("categoryId") String categoryId, 
+                                                               @Param("parentId") String parentId, 
+                                                               @Param("active") Boolean active);
+
+    /**
+     * Find labels by parent ID and active status, ordered by name
+     *
+     * @param parentId the parent ID
+     * @param active the active status
+     * @return List of labels
+     */
+    @Query("SELECT l FROM Label l WHERE l.parent.id = :parentId AND l.active = :active AND l.deleted = false ORDER BY l.name")
+    List<Label> findByParentIdAndActiveOrderByName(@Param("parentId") String parentId, @Param("active") Boolean active);
+
+    /**
+     * Count labels by category ID and active status
+     *
+     * @param categoryId the category ID
+     * @param active the active status
+     * @return count of labels
+     */
+    @Query("SELECT COUNT(l) FROM Label l WHERE l.category.id = :categoryId AND l.active = :active AND l.deleted = false")
+    long countByCategoryIdAndActive(@Param("categoryId") String categoryId, @Param("active") Boolean active);
 }
