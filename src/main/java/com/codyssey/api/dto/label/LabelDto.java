@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -22,6 +21,9 @@ public class LabelDto {
     private String description;
     private Boolean active;
     private String uri;
+    private String articlesUri;
+    private String mcqsUri;
+    private String questionsUri;
     private LabelCategorySummaryDto category;
     private LabelSummaryDto parent;
     private List<LabelSummaryDto> children;

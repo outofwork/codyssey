@@ -454,6 +454,9 @@ public class LabelServiceImpl implements LabelService {
         dto.setDescription(label.getDescription());
         dto.setActive(label.getActive());
         dto.setUri("/api/v1/labels/" + label.getUrlSlug());
+        dto.setArticlesUri("/api/v1/articles/label/" + label.getUrlSlug());
+        dto.setMcqsUri("/api/v1/mcq/labels/" + label.getUrlSlug() + "/questions");
+        dto.setQuestionsUri("/api/v1/coding-questions/label/" + label.getUrlSlug());
 
         // Convert category
         if (label.getCategory() != null) {
@@ -464,7 +467,8 @@ public class LabelServiceImpl implements LabelService {
         if (label.getParent() != null) {
             LabelSummaryDto parentDto = new LabelSummaryDto();
             parentDto.setName(label.getParent().getName());
-            parentDto.setQuestionUri("/api/v1/coding-questions/label/" + label.getParent().getUrlSlug());
+            parentDto.setDescription(label.getParent().getDescription());
+            parentDto.setUri("/api/v1/labels/" + label.getParent().getUrlSlug());
             dto.setParent(parentDto);
         }
 
@@ -475,7 +479,8 @@ public class LabelServiceImpl implements LabelService {
                     .map(child -> {
                         LabelSummaryDto childDto = new LabelSummaryDto();
                         childDto.setName(child.getName());
-                        childDto.setQuestionUri("/api/v1/coding-questions/label/" + child.getUrlSlug());
+                        childDto.setDescription(child.getDescription());
+                        childDto.setUri("/api/v1/labels/" + child.getUrlSlug());
                         return childDto;
                     })
                     .collect(Collectors.toList());
@@ -532,7 +537,7 @@ public class LabelServiceImpl implements LabelService {
     private LabelCategorySummaryDto convertCategoryToSummaryDto(LabelCategory category) {
         LabelCategorySummaryDto dto = new LabelCategorySummaryDto();
         dto.setName(category.getName());
-        dto.setUri("/api/v1/labelcategories/" + category.getUrlSlug());
+        dto.setUri("/api/v1/labels/category/" + category.getCode());
         return dto;
     }
 
